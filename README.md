@@ -39,8 +39,8 @@ Aplicación de gestión de jugadores de fútbol construida con **Next.js (App Ro
 # 1. Dependencias (genera también el cliente de Prisma)
 pnpm install
 
-# 2. Variables de entorno: copia el ejemplo y reemplaza <password>
-#    (en POSTGRES_PASSWORD y en DATABASE_URL) por una contraseña local
+# 2. Variables de entorno: copia el ejemplo y completa DATABASE_URL
+#    (ver "Base de datos local" más abajo)
 cp .env.example .env
 
 # 3. Base de datos en Docker
@@ -75,6 +75,10 @@ El seed:
 | `pnpm build` / `pnpm start` | Build y servidor de producción |
 | `pnpm lint` | ESLint |
 | `pnpm typecheck` | Comprobación de tipos con TypeScript |
+| `pnpm test` | Todas las pruebas (unitarias, componentes e integración) |
+| `pnpm test:unit` | Pruebas unitarias y de componentes (no necesitan base de datos) |
+| `pnpm test:integration` | Pruebas de integración contra la base de pruebas |
+| `pnpm test:watch` | Pruebas en modo observación |
 | `pnpm db:up` / `pnpm db:down` | Levantar / detener PostgreSQL en Docker |
 | `pnpm db:migrate` | Crear y aplicar migraciones (desarrollo) |
 | `pnpm db:deploy` | Aplicar migraciones pendientes (producción) |
@@ -82,6 +86,51 @@ El seed:
 | `pnpm db:studio` | Explorar los datos con Prisma Studio |
 
 `pnpm db:down` conserva los datos (volumen `pgdata`). Para borrarlos por completo: `docker compose down -v`.
+
+### Base de datos local
+
+`docker-compose.yml` no necesita variables de entorno ni guarda contraseñas en el repositorio:
+
+- Usuario `football` y base de datos `football_players`.
+- Al crear la base por primera vez se usa autenticación `trust` (sin contraseña). El puerto solo se publica en `127.0.0.1`, así que solo es accesible desde tu equipo.
+- Si el volumen `pgdata` ya existía, Postgres conserva la configuración con la que se creó. Si ese volumen se creó con contraseña, sigue siendo necesaria en `DATABASE_URL`.
+
+Con una base creada desde cero, `DATABASE_URL` queda así:
+
+```env
+DATABASE_URL="postgresql://football@localhost:5432/football_players?schema=public"
+```
+
+Solo para desarrollo: no uses autenticación `trust` en ningún entorno accesible desde la red.
+
+## Pruebas
+
+Las pruebas usan [Vitest](https://vitest.dev) y Testing Library, organizadas en tres proyectos:
+
+| Proyecto | Carpeta | Entorno | Qué cubre |
+|---|---|---|---|
+| `unit` | `tests/unit/` | Node | Utilidades de fechas y edad, reglas de validación (zod) |
+| `components` | `tests/components/` | jsdom | Tabla y paginación, filtros, formulario de jugador, modal de eliminación |
+| `integration` | `tests/integration/` | Node + PostgreSQL | Server Actions y consultas contra una base de datos real |
+
+### Base de datos de pruebas
+
+Las pruebas de integración usan una base **separada**, definida en `TEST_DATABASE_URL` (ver `.env.example`):
+
+- Se crea automáticamente en el Postgres de Docker si no existe, y se le aplican las migraciones.
+- **Todas sus tablas se vacían antes de cada prueba.** Por seguridad, la URL debe apuntar a `localhost` y el nombre de la base debe terminar en `_test`; si no, las pruebas se detienen sin conectarse.
+- Las pruebas nunca leen `DATABASE_URL` ni `DIRECT_URL`, así que no tocan tu base de desarrollo ni Neon.
+
+```bash
+pnpm db:up   # Postgres en Docker
+pnpm test
+```
+
+Si `TEST_DATABASE_URL` no está definida, `pnpm test` ejecuta solo las pruebas unitarias y de componentes, y muestra un aviso.
+
+### Integración continua
+
+`.github/workflows/ci.yml` se ejecuta en cada pull request y en cada push a `main`: lint, todas las pruebas (con PostgreSQL 17 como servicio del runner), build y typecheck. No usa secretos ni se conecta a Neon.
 
 ## Despliegue con Neon
 
@@ -119,6 +168,13 @@ src/
 ├── components/            # Navbar, Footer, ThemeSwitcher, jugadores/*
 ├── lib/                   # Prisma, utilidades de dominio y validación
 └── generated/prisma/      # Cliente de Prisma generado (no se versiona)
+tests/
+├── unit/                  # Lógica pura (Node)
+├── components/            # Componentes de React (jsdom)
+├── integration/           # Server Actions y consultas contra PostgreSQL
+└── stubs/                 # Sustitutos de módulos solo de servidor
+.github/workflows/ci.yml   # Integración continua
+vitest.config.ts           # Configuración de las pruebas
 ```
 
 ## Seguridad
@@ -130,5 +186,5 @@ src/
 ## Contribuir
 
 1. Crea una rama desde `main` (`feat/...`, `fix/...`).
-2. Antes de abrir el PR: `pnpm lint`, `pnpm typecheck` y `pnpm build`.
+2. Antes de abrir el PR: `pnpm lint`, `pnpm test`, `pnpm build` y `pnpm typecheck` (lo mismo que ejecuta la CI).
 3. Usa commits semánticos (`feat: ...`, `fix: ...`).

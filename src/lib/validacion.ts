@@ -20,6 +20,8 @@ export const jugadorSchema = z.object({
     .date({ error: "Ingresa una fecha de nacimiento válida." })
     .refine((fecha) => fecha >= FECHA_MINIMA && fecha <= hoyISO(), {
       error: "La fecha de nacimiento no puede ser futura ni anterior a 1900.",
+      // Solo comprueba el rango si el formato es válido, para no sumar un segundo error engañoso.
+      when: (payload) => payload.issues.length === 0,
     }),
   activo: z.boolean(),
 });
