@@ -65,16 +65,14 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 ### Debilidades vigentes
 
 - **No hay autenticación:** las Server Actions son endpoints públicos.
-- **El proyecto de Supabase sigue activo** y escribible por cualquiera con la clave pública.
-- No hay pruebas automatizadas en el repositorio.
+- No hay pruebas en un navegador real ni medición de cobertura (las unitarias, de componentes y de integración ya existen; fase 2).
 - Las secciones Equipos y Partidos siguen sin existir.
 - El modelo de datos tiene inconsistencias heredadas (H-31 a H-35).
 
 ### Riesgos principales
 
 1. Cualquier visitante puede crear, editar o eliminar jugadores llamando a las Server Actions (H-17).
-2. Mientras el proyecto de Supabase siga activo, sus datos pueden modificarse o borrarse con la clave pública (H-17).
-3. Jugadores sin equipo y goles registrados dos veces impedirán construir estadísticas fiables (H-31, H-32).
+2. Jugadores sin equipo y goles registrados dos veces impedirán construir estadísticas fiables (H-31, H-32).
 
 ---
 
@@ -86,11 +84,11 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 | Calidad del código | 6 | 8 | TypeScript estricto, lint y typecheck limpios, sin código muerto ni duplicado conocido. |
 | Funcionalidad | 5 | 6 | Bugs del CRUD corregidos; Equipos y Partidos siguen sin existir. |
 | Base de datos | 4 | 6 | Esquema y migraciones en el repo, seed reproducible. Persisten los problemas del modelo (H-31 a H-35) y los dorsales repetidos. |
-| Seguridad | 3 | 4 | Sin credenciales en el navegador y con validación en el servidor, pero sin autenticación y con Supabase aún expuesto. |
-| UI/UX | 7 | 7 | Mismo diseño; terminología y etiquetas corregidas. Tabla en móvil y secciones vacías sin resolver. |
+| Seguridad | 3 | 5 | Sin credenciales en el navegador, validación en el servidor y proyecto de Supabase desactivado. Falta la autenticación. |
+| UI/UX | 7 | 7 | Mismo diseño, revisado en el navegador por el propietario tras la migración; terminología y etiquetas corregidas. Tabla en móvil y secciones vacías sin resolver. |
 | Rendimiento | 7 | 7 | Código dividido por ruta y fuentes alojadas localmente; el CSS de HeroUI sigue completo. |
 | Accesibilidad | 5 | 6 | `lang="es"`, un solo `<main>`, `<nav>` en la paginación. El contraste en modo oscuro sigue sin corregir. |
-| Testing | 1 | 2 | Hay pruebas de extremo a extremo, pero fuera del repo y sin integrar en un comando del proyecto. |
+| Testing | 1 | 7 | 101 pruebas (unitarias, de componentes y de integración contra PostgreSQL) con `pnpm test` y CI. Faltan pruebas en navegador y medición de cobertura. |
 | Mantenibilidad | 5 | 8 | Formulario único, utilidades centralizadas, README fiel al código. |
 
 ---
@@ -187,10 +185,8 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
   - ✅ La base de datos ya no es accesible desde el navegador; la cadena de conexión solo existe en el servidor.
   - ✅ Toda escritura pasa por validación en el servidor y por comprobación de id.
   - 🔴 Las Server Actions (`src/app/jugadores/actions.ts`) son endpoints HTTP públicos sin autenticación: cualquier visitante puede crear, editar o eliminar jugadores.
-  - 🔴 El proyecto de Supabase sigue activo y conserva la configuración insegura.
-- **Solución:**
-  1. Desactivar o eliminar el proyecto de Supabase (acción del propietario).
-  2. Añadir autenticación (por ejemplo, Auth.js o Better Auth) y comprobar la sesión al inicio de cada Server Action.
+  - ✅ El proyecto de Supabase está desactivado (confirmado por el propietario, 2026-11-11): la clave pública antigua ya no da acceso a los datos.
+- **Solución pendiente:** añadir autenticación (por ejemplo, Auth.js o Better Auth) y comprobar la sesión al inicio de cada Server Action.
 
 #### H-18 · Variables de entorno mal documentadas · ✅ Resuelto
 - **Categoría:** Configuración · **Certeza:** Confirmado · **Severidad:** baja
@@ -303,13 +299,13 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 ## D. Mejoras recomendadas (estado actual)
 
 ### 1. Críticas
-- Desactivar o eliminar el proyecto de Supabase (H-17).
+- ~~Desactivar o eliminar el proyecto de Supabase (H-17).~~ ✅ Hecho.
 - Autenticación en las Server Actions (H-17).
 
 ### 2. Importantes
 - Relacionar jugadores con equipos (H-31).
 - Decidir la regla del dorsal y aplicarla (H-07).
-- Llevar las pruebas de extremo a extremo al repositorio y añadir pruebas unitarias.
+- ~~Llevar las pruebas de extremo a extremo al repositorio y añadir pruebas unitarias.~~ ✅ Hecho en la fase 2.
 - `CHECK` de fecha de nacimiento en la base de datos (H-06).
 
 ### 3. Experiencia y accesibilidad
@@ -368,27 +364,36 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
   - README actualizado con instalación, scripts y despliegue en Neon.
 - **Archivos:** `prisma/`, `prisma.config.ts`, `docker-compose.yml`, `src/app/`, `src/components/`, `src/lib/`, configuración de Next.js, TypeScript, ESLint y PostCSS. Se eliminaron los archivos de Vite y Supabase.
 - **Verificación:** `tsc`, ESLint y `next build` sin errores; 12 pruebas de extremo a extremo de las Server Actions (validación, crear, editar, eliminar, id inválidos); las rutas inexistentes devuelven 404.
-- **Pendiente:**
-  - Revisar la interfaz en el navegador (modales, cambio de tema, aspecto visual).
-  - Desplegar en Vercel con Neon (`DATABASE_URL` con pooling y `DIRECT_URL` directa).
-  - Desactivar el proyecto de Supabase, que sigue siendo escribible con la clave pública.
+- **Cierre (2026-11-11, confirmado por el propietario):**
+  - ✅ Interfaz revisada en el navegador (modales, cambio de tema, aspecto visual).
+  - ✅ Proyecto de Supabase desactivado.
+  - ✅ Esquema migrado a Neon y variables de entorno configuradas en Vercel (`DATABASE_URL` con pooling y `DIRECT_URL` directa).
+  - ✅ Aplicación desplegada en Vercel con la base de datos de Neon.
 
 ### Fase 1 · Bugs confirmados — ✅ Completada dentro de la fase 0
 - Todos los hallazgos previstos para esta fase se corrigieron al reescribir la aplicación, salvo H-08 (pasa a la fase 5 o a la 6).
 
-### Fase 2 · Base de pruebas — Prioridad alta
+### Fase 2 · Base de pruebas — ✅ Completada (2026-11-11)
 - **Objetivo:** Vitest + Testing Library, más las pruebas de extremo a extremo ya escritas, integradas como `pnpm test`.
-- **Casos:**
-  - Unitarias: `src/lib/jugadores.ts` (fechas y edad) y `src/lib/validacion.ts` (reglas de zod).
-  - Componentes: paginación, filtro y `PlayerFormModal`.
-  - Integración: Server Actions contra una base de datos de prueba en Docker (crear, editar, eliminar y casos de error).
-- **Dependencias:** ninguna.
-- **Riesgo:** bajo.
-- **Criterio de aceptación:** `pnpm test` en verde y ejecutándose en CI.
+- **Herramientas:** Vitest 5 (tres proyectos), Testing Library (`react`, `user-event`, `jest-dom`), jsdom y `pg` para preparar la base de pruebas.
+- **Pruebas (101 en total):**
+
+  | Proyecto | Archivos | Pruebas | Qué cubre |
+  |---|---|---|---|
+  | `unit` | `tests/unit/` | 55 | `formatearFecha` en varias zonas horarias, `calcularEdad` (cumpleaños, 29 de febrero, fechas futuras), `fechaAISO`, `hoyISO`, `iniciales`; todas las reglas de `jugadorSchema` y sus límites |
+  | `components` | `tests/components/` | 21 | Paginación de `PlayersTable`, filtros de `PlayersView`, estado vacío, `PlayerFormModal` (creación, edición, validación en el cliente, errores del servidor), `DeletePlayerModal` |
+  | `integration` | `tests/integration/` | 25 | Las tres Server Actions y las consultas de `data.ts` contra PostgreSQL: validación, alta, edición, borrado en cascada, jugador con goles, id inválidos, orden del listado, restricciones `CHECK` |
+
+- **Pruebas de regresión** de los bugs de la auditoría: H-01 (clase del filtro activo), H-02 (notificación de error al eliminar), H-03 (paginación al reducirse la lista y al cambiar de filtro) y H-04 (cancelar una edición). Se comprobó que la prueba de H-03 falla al reintroducir el bug original.
+- **Base de datos de pruebas:** `TEST_DATABASE_URL`, separada de la de desarrollo. Se crea y migra sola, y se vacía antes de cada prueba. Una protección impide usarla si no apunta a `localhost` o si el nombre no termina en `_test`. Las pruebas nunca leen `DATABASE_URL` ni `DIRECT_URL`.
+- **CI:** `.github/workflows/ci.yml` ejecuta lint, pruebas (PostgreSQL 17 como servicio, sin contraseña ni secretos), build y typecheck en cada PR y en cada push a `main`. En CI, la falta de `TEST_DATABASE_URL` es un error, no una omisión silenciosa.
+- **Bug encontrado por las pruebas:** con una fecha vacía o mal formada, zod devolvía dos errores (formato y rango). Corregido en `src/lib/validacion.ts`: el rango solo se comprueba si el formato es válido.
+- **Criterio de aceptación:** ✅ `pnpm test` en verde en local. El workflow de CI no se ha ejecutado todavía en GitHub.
+- **Fuera de alcance:** pruebas en un navegador real (Playwright), medición de cobertura y pruebas automáticas de accesibilidad.
 
 ### Fase 3 · Seguridad e integridad — Prioridad crítica
 - **Tareas:**
-  - Desactivar o eliminar el proyecto de Supabase.
+  - ~~Desactivar o eliminar el proyecto de Supabase.~~ ✅ Hecho (2026-11-11).
   - Autenticación (por ejemplo, Auth.js o Better Auth) con comprobación de sesión al inicio de cada Server Action.
   - `CHECK` de fecha de nacimiento y de dorsal (1-99) en la base de datos.
   - Regla del dorsal (H-07): limpiar duplicados, añadir la restricción y mostrar el mensaje del error `P2002`.
@@ -424,21 +429,21 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 ## F. Evaluación final (estado actual)
 
 **1. ¿Qué tan cerca está de un producto profesional?**
-Aproximadamente al 60 % (antes, 40 %). La arquitectura, la calidad del código y la mantenibilidad ya están a nivel profesional. Faltan la autenticación, las pruebas en el repositorio y un modelo de datos coherente para crecer.
+Aproximadamente al 65 % (40 % al inicio, 60 % tras la migración). La arquitectura, la calidad del código, la mantenibilidad y la base de pruebas ya están a nivel profesional. Faltan la autenticación y un modelo de datos coherente para crecer.
 
 **2. Los cinco problemas más importantes**
 1. Server Actions públicas sin autenticación (H-17).
-2. Proyecto de Supabase aún activo y escribible (H-17).
-3. Jugadores sin equipo (H-31).
-4. Goles y posiciones guardados dos veces, sin garantía de coherencia (H-32, H-33).
-5. Sin pruebas automatizadas en el repositorio.
+2. Jugadores sin equipo (H-31).
+3. Goles y posiciones guardados dos veces, sin garantía de coherencia (H-32, H-33).
+4. Dorsales repetidos sin una regla de negocio definida (H-07).
+5. Contraste insuficiente en modo oscuro (H-22).
 
 **3. Las cinco mejoras de mayor impacto**
-1. Desactivar Supabase y añadir autenticación.
-2. Llevar las pruebas al repositorio con `pnpm test`.
-3. Añadir `equipo_id` a `jugadores`.
+1. Añadir autenticación a las Server Actions.
+2. Añadir `equipo_id` a `jugadores`.
+3. Definir la regla del dorsal y aplicarla en la base de datos (H-07).
 4. Implementar Equipos y Partidos sobre el modelo corregido.
-5. Corregir el contraste en modo oscuro.
+5. Corregir el contraste en modo oscuro y la tabla en móvil (H-22, H-26).
 
 **4. Qué no debería modificarse**
 - La identidad visual (banda, dorsal con contorno, tipografías, tokens `--pl-*`).
