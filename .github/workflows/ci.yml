@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint, tests and build
+    runs-on: ubuntu-latest
+
+    # Base de datos solo para las pruebas de integración: sin contraseña (trust) y
+    # accesible únicamente dentro del runner. No se usan secretos ni Neon.
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: football
+          POSTGRES_DB: football_players_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U football -d football_players_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TEST_DATABASE_URL: postgresql://football@localhost:5432/football_players_test?schema=public
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 12.18.0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Tests (unit, components, integration)
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      # Después del build, que genera next-env.d.ts y los tipos de las rutas.
+      - name: Typecheck
+        run: pnpm typecheck
