@@ -155,3 +155,17 @@ thumb
 sketch
 
 # End of https://www.toptal.com/developers/gitignore/api/node,react
+### Next.js / Prisma ###
+.next/
+next-env.d.ts
+*.tsbuildinfo
+/src/generated/
+
+# Backups locales de la base de datos (no subir al repo)
+*.backup
+*.backup.gz
+*.dump
+
+# Datos de la migración y notas locales (no se versionan)
+/prisma/seed-data.json
+/prompt-1.md
