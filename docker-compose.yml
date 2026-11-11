@@ -1,17 +1,21 @@
 # Postgres solo para desarrollo local. En producción se usa Neon.
 # Misma versión mayor que la base original de Supabase (PostgreSQL 17).
+#
+# No requiere ninguna variable de entorno ni guarda contraseñas en el repo:
+# al crear la base por primera vez se usa autenticación "trust" (sin contraseña),
+# y el puerto solo se publica en 127.0.0.1, así que solo es accesible desde tu equipo.
+# Si el volumen ya existía, Postgres conserva la configuración con la que se creó.
 services:
   db:
     image: postgres:17-alpine
     container_name: football-players-db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-football}
-      # Sin valor por defecto: defínela en .env (ver .env.example).
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en el archivo .env}
-      POSTGRES_DB: ${POSTGRES_DB:-football_players}
+      POSTGRES_USER: football
+      POSTGRES_DB: football_players
+      POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
