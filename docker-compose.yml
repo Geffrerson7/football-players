@@ -1,0 +1,24 @@
+# Postgres solo para desarrollo local. En producción se usa Neon.
+# Misma versión mayor que la base original de Supabase (PostgreSQL 17).
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: football-players-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-football}
+      # Sin valor por defecto: defínela en .env (ver .env.example).
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en el archivo .env}
+      POSTGRES_DB: ${POSTGRES_DB:-football_players}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

@@ -1,0 +1,107 @@
+// Esquema migrado desde Supabase (backup del 29-10-2026).
+// Refleja fielmente las tablas originales del esquema `public`:
+// mismos nombres de tabla, columnas, tipos, valores por defecto y claves foráneas.
+// Los modelos usan nombres en camelCase y se mapean a las columnas snake_case.
+// Las restricciones CHECK no se pueden expresar en Prisma; están en la migración inicial.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Jugador {
+  id              Int       @id @default(autoincrement())
+  nombre          String    @db.VarChar(255)
+  posicion        String?   @db.VarChar(50)
+  dorsal          Int
+  activo          Boolean?  @default(true)
+  fechaNacimiento DateTime? @map("fecha_nacimiento") @db.Date
+
+  detalle DetalleJugador?
+  goles   Gol[]
+
+  @@map("jugadores")
+}
+
+model DetalleJugador {
+  id                 Int      @id @default(autoincrement())
+  jugadorId          Int      @unique @map("jugador_id")
+  nacionalidad       String?  @db.VarChar(100)
+  alturaCm           Int?     @map("altura_cm")
+  pesoKg             Decimal? @map("peso_kg") @db.Decimal(5, 2)
+  pieHabil           String?  @map("pie_habil") @db.VarChar(10)
+  clubActual         String?  @map("club_actual") @db.VarChar(150)
+  fotoUrl            String?  @map("foto_url")
+  biografia          String?
+  fechaActualizacion DateTime @default(now()) @map("fecha_actualizacion") @db.Timestamptz(6)
+
+  jugador Jugador @relation(fields: [jugadorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("detalle_jugadores")
+}
+
+model Equipo {
+  id            Int       @id @default(autoincrement())
+  nombre        String    @db.VarChar(50)
+  confederacion String    @db.VarChar(25)
+  grupo         String    @db.Char(1)
+  rankingFifa   Int       @map("ranking_fifa")
+  clasificado   Boolean?  @default(true)
+  fechaCreacion DateTime? @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+
+  partidosLocal     Partido[]       @relation("PartidoLocal")
+  partidosVisitante Partido[]       @relation("PartidoVisitante")
+  posiciones        PosicionGrupo[]
+
+  @@map("equipos")
+}
+
+model Partido {
+  id             Int       @id @default(autoincrement())
+  localId        Int       @map("local_id")
+  visitanteId    Int       @map("visitante_id")
+  golesLocal     Int?      @default(0) @map("goles_local")
+  golesVisitante Int?      @default(0) @map("goles_visitante")
+  fase           String    @db.VarChar(30)
+  fecha          DateTime? @db.Timestamp(6)
+
+  local     Equipo @relation("PartidoLocal", fields: [localId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  visitante Equipo @relation("PartidoVisitante", fields: [visitanteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  goles     Gol[]
+
+  @@map("partidos")
+}
+
+model Gol {
+  id        Int      @id @default(autoincrement())
+  partidoId Int      @map("partido_id")
+  jugadorId Int      @map("jugador_id")
+  minuto    Int
+  esPenal   Boolean? @map("es_penal")
+
+  partido Partido @relation(fields: [partidoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  jugador Jugador @relation(fields: [jugadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("goles")
+}
+
+model PosicionGrupo {
+  id       Int    @id @default(autoincrement())
+  equipoId Int    @map("equipo_id")
+  grupo    String @db.Char(2)
+  pj       Int    @default(0)
+  pg       Int    @default(0)
+  pe       Int    @default(0)
+  pp       Int    @default(0)
+  gf       Int    @default(0)
+  gc       Int    @default(0)
+  puntos   Int    @default(0)
+
+  equipo Equipo @relation(fields: [equipoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@map("posiciones_por_grupo")
+}

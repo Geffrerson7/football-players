@@ -1,0 +1,13 @@
+@import "tailwindcss";
+@import "@heroui/styles";
+@import "./heroui-theme.css";
+@import "./plantel.css";
+
+/* Tailwind v4 detecta automáticamente las clases en src/; el modo oscuro usa la clase .dark (next-themes). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+body {
+  background: var(--pl-bg);
+  color: var(--pl-ink);
+  font-family: var(--pl-font-body);
+}
