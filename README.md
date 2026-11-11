@@ -1,139 +1,134 @@
 # Football Players
 
-A football player management application built with React, Vite, Tailwind CSS, and Supabase.
+Aplicación de gestión de jugadores de fútbol construida con **Next.js (App Router)**, **TypeScript**, **Prisma ORM** y **PostgreSQL**, con una estética futbolística editorial.
 
-## Overview
+- **Desarrollo:** PostgreSQL 17 en Docker.
+- **Producción:** [Neon](https://neon.tech) (PostgreSQL serverless).
 
-Football Players is a web application designed to organize and manage football player information through a clean, football-inspired interface.
+## Funcionalidades
 
-The project includes player management views, player details, reusable UI components, and a responsive layout.
+- **Plantel:** listado de jugadores ordenado por dorsal, con filtro por posición y paginación.
+- **Gestión de jugadores:** registrar, editar (incluido el estado activo/inactivo) y eliminar.
+- **Perfil del jugador:** ficha deportiva, edad calculada y biografía.
+- **Tema claro / oscuro / sistema.**
+- **Página 404 personalizada.**
 
-## Features
+> Las secciones **Equipos** y **Partidos** aparecen en la navegación, pero todavía no están implementadas. Los datos (`equipos`, `partidos`, `goles`, `posiciones_por_grupo`) ya existen en la base de datos.
 
-- **Player management:** Create, view, edit, and delete player records.
-- **Player details:** Display player information, including profile data and additional details when available.
-- **Responsive layout:** Adapt the interface to different screen sizes.
-- **Navigation:** Navigate between the home page, players, teams, and matches sections.
-- **Theme switching:** Change the application's visual theme.
-- **404 page:** Display a custom page when a route cannot be found.
-- **Supabase integration:** Use Supabase as the backend data service.
+## Stack
 
-> Teams and matches sections may require further implementation depending on the current project status.
-
-## Tech Stack
-
-- **React** — UI development.
-- **Vite** — Development server and build tool.
-- **React Router** — Client-side routing.
-- **Tailwind CSS** — Utility-first styling.
-- **Supabase** — Backend and database services.
-- **ESLint** — Code linting.
-- **pnpm** — Package management.
-
-## Getting Started
-
-### Prerequisites
-
-Make sure you have the following installed:
-
-- Node.js
-- pnpm
-- A Supabase project
-
-### Installation
-
-1. Clone the repository:
-
-   ```bash
-   git clone <repository-url>
-   ```
-
-2. Navigate to the project directory:
-
-   ```bash
-   cd hero-supabase
-   ```
-
-3. Install dependencies:
-
-   ```bash
-   pnpm install
-   ```
-
-4. Configure the environment variables as described below.
-
-5. Start the development server:
-
-   ```bash
-   pnpm run dev
-   ```
-
-Vite will display the local URL where you can access the application.
-
-## Environment Variables
-
-Create a `.env` file in the project root and configure the variables required by your Supabase client.
-
-For example, if your client uses Vite environment variables:
-
-```env
-VITE_SUPABASE_URL=your_supabase_project_url
-VITE_SUPABASE_ANON_KEY=your_supabase_publishable_key
-```
-
-Use the exact variable names expected by your Supabase configuration in `src/utils/supabase.js`.
-
-**Security:** Never commit `.env` or expose your Supabase secret or service-role key in frontend code. Only use the public client key intended for browser applications, together with appropriate Row Level Security (RLS) policies.
-
-## Available Scripts
-
-| Command | Description |
+| Capa | Tecnología |
 |---|---|
-| `pnpm run dev` | Start the development server. |
-| `pnpm run build` | Build the application for production. |
-| `pnpm run preview` | Preview the production build locally. |
-| `pnpm run lint` | Run ESLint checks. |
+| Framework | Next.js 16 (App Router, Server Components, Server Actions) |
+| Lenguaje | TypeScript |
+| UI | React 19, HeroUI v3, Tailwind CSS v4, lucide-react, sonner |
+| Datos | Prisma ORM 7 (`@prisma/adapter-pg`), PostgreSQL 17 |
+| Validación | zod (en el servidor; el cliente repite las reglas básicas) |
+| Tema | next-themes |
+| Gestor de paquetes | pnpm |
 
-## Project Structure
+## Requisitos
 
-```text
-src/
-├── assets/           # Static assets
-├── components/       # Reusable UI components
-├── layouts/          # Shared application layouts
-├── pages/            # Application pages
-├── styles/           # Global and shared styles
-├── utils/            # Supabase client and helper functions
-├── App.jsx           # Application routes
-├── index.css         # Global styles
-└── main.jsx          # Application entry point
-```
+- Node.js 20.19 o superior (probado con Node 24)
+- pnpm
+- Docker Desktop (para la base de datos de desarrollo)
 
-## Development
-
-Run the linter and production build to check the project before submitting changes:
+## Puesta en marcha (desarrollo)
 
 ```bash
-pnpm run lint
-pnpm run build
+# 1. Dependencias (genera también el cliente de Prisma)
+pnpm install
+
+# 2. Variables de entorno: copia el ejemplo y reemplaza <password>
+#    (en POSTGRES_PASSWORD y en DATABASE_URL) por una contraseña local
+cp .env.example .env
+
+# 3. Base de datos en Docker
+pnpm db:up
+
+# 4. Crear las tablas (y, si tienes prisma/seed-data.json, cargar los datos)
+pnpm db:migrate
+pnpm db:seed
+
+# 5. Servidor de desarrollo
+pnpm dev
 ```
 
-## Contributing
+Abre la URL que muestra Next.js (por defecto `http://localhost:3000`).
 
-1. Create a feature branch from `main`.
-2. Implement your changes.
-3. Run the available checks.
-4. Commit using clear, semantic commit messages.
-5. Open a pull request describing the changes.
+### Datos iniciales
 
-Example branch name:
+`prisma/seed.ts` carga los datos migrados desde el backup de Supabase del 29-10-2026 (12 jugadores, 11 fichas, 10 equipos, 10 partidos, 10 goles y 10 posiciones) a partir de `prisma/seed-data.json`.
+
+**`prisma/seed-data.json` no está en el repositorio.** Para cargar los datos, coloca ese archivo en `prisma/` antes de ejecutar `pnpm db:seed`; sin él, el seed se detiene con un mensaje explicativo y la base queda vacía.
+
+El seed:
+
+- conserva los `id` originales y ajusta las secuencias;
+- es **idempotente**: omite las filas que ya existen y **nunca borra datos**.
+
+## Scripts
+
+| Comando | Descripción |
+|---|---|
+| `pnpm dev` | Servidor de desarrollo |
+| `pnpm build` / `pnpm start` | Build y servidor de producción |
+| `pnpm lint` | ESLint |
+| `pnpm typecheck` | Comprobación de tipos con TypeScript |
+| `pnpm db:up` / `pnpm db:down` | Levantar / detener PostgreSQL en Docker |
+| `pnpm db:migrate` | Crear y aplicar migraciones (desarrollo) |
+| `pnpm db:deploy` | Aplicar migraciones pendientes (producción) |
+| `pnpm db:seed` | Cargar los datos iniciales |
+| `pnpm db:studio` | Explorar los datos con Prisma Studio |
+
+`pnpm db:down` conserva los datos (volumen `pgdata`). Para borrarlos por completo: `docker compose down -v`.
+
+## Despliegue con Neon
+
+1. Crea un proyecto en Neon y copia sus dos cadenas de conexión.
+2. Configura en el entorno de producción (por ejemplo, Vercel):
+   - `DATABASE_URL`: conexión **con pooling** (host con `-pooler`), la que usa la app.
+   - `DIRECT_URL`: conexión **directa** (host sin `-pooler`), la que usa la CLI de Prisma.
+3. Aplica el esquema y, si quieres los datos iniciales, ejecuta el seed apuntando a Neon:
+
+   ```bash
+   pnpm db:deploy
+   pnpm db:seed
+   ```
+
+`prisma.config.ts` usa `DIRECT_URL` para la CLI cuando existe y, si no, `DATABASE_URL`.
+
+## Estructura
 
 ```text
-feat/player-search
+prisma/
+├── schema.prisma          # Modelos (mapeados a las tablas originales)
+├── migrations/            # Migración inicial (incluye restricciones CHECK)
+├── seed.ts                # Seed idempotente
+└── seed-data.json         # Datos migrados desde Supabase (local, no versionado)
+src/
+├── app/
+│   ├── layout.tsx         # Layout raíz, fuentes, tema, navegación
+│   ├── page.tsx           # Portada
+│   ├── not-found.tsx      # 404
+│   └── jugadores/
+│       ├── (lista)/       # Listado (page, loading, error)
+│       ├── [id]/          # Perfil del jugador
+│       ├── actions.ts     # Server Actions: crear, editar, eliminar
+│       └── data.ts        # Consultas (solo servidor)
+├── components/            # Navbar, Footer, ThemeSwitcher, jugadores/*
+├── lib/                   # Prisma, utilidades de dominio y validación
+└── generated/prisma/      # Cliente de Prisma generado (no se versiona)
 ```
 
-Example commit message:
+## Seguridad
 
-```text
-feat: add player search
-```
+- La base de datos solo se accede desde el servidor (Server Components y Server Actions). El navegador no recibe credenciales.
+- **Todavía no hay autenticación.** Las Server Actions son endpoints públicos: cualquier visitante puede crear, editar o eliminar jugadores. Se validan siempre en el servidor, pero el control de acceso es la siguiente tarea pendiente.
+- Nunca subas `.env` ni los backups de la base de datos al repositorio (ambos están en `.gitignore`).
+
+## Contribuir
+
+1. Crea una rama desde `main` (`feat/...`, `fix/...`).
+2. Antes de abrir el PR: `pnpm lint`, `pnpm typecheck` y `pnpm build`.
+3. Usa commits semánticos (`feat: ...`, `fix: ...`).
