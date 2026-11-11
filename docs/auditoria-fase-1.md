@@ -388,7 +388,7 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 - **Base de datos de pruebas:** `TEST_DATABASE_URL`, separada de la de desarrollo. Se crea y migra sola, y se vacía antes de cada prueba. Una protección impide usarla si no apunta a `localhost` o si el nombre no termina en `_test`. Las pruebas nunca leen `DATABASE_URL` ni `DIRECT_URL`.
 - **CI:** `.github/workflows/ci.yml` ejecuta lint, pruebas (PostgreSQL 17 como servicio, sin contraseña ni secretos), build y typecheck en cada PR y en cada push a `main`. En CI, la falta de `TEST_DATABASE_URL` es un error, no una omisión silenciosa.
 - **Bug encontrado por las pruebas:** con una fecha vacía o mal formada, zod devolvía dos errores (formato y rango). Corregido en `src/lib/validacion.ts`: el rango solo se comprueba si el formato es válido.
-- **Criterio de aceptación:** ✅ `pnpm test` en verde en local. El workflow de CI no se ha ejecutado todavía en GitHub.
+- **Criterio de aceptación:** ✅ `pnpm test` en verde en local y en CI. El workflow pasó en su primera ejecución en GitHub (PR #3, 1 min 6 s), junto con el despliegue de vista previa en Vercel.
 - **Fuera de alcance:** pruebas en un navegador real (Playwright), medición de cobertura y pruebas automáticas de accesibilidad.
 
 ### Fase 3 · Seguridad e integridad — Prioridad crítica
