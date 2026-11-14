@@ -1,24 +1,32 @@
 /*
   Plantel — tokens y utilidades propias.
-  Paleta tomada de la cancha y la camiseta: tiza, césped, banda roja.
+  Paleta «Celeste y marino»: azul marino para el texto y las superficies oscuras,
+  celeste para el acento. Es neutra a propósito, para no competir con los colores
+  de cada selección.
   Los tokens de HeroUI siguen mandando en los componentes (inputs, modal);
   aquí solo se define la identidad de la página.
+
+  Los nombres vienen de la paleta original (césped y banda roja) y se conservan para
+  no tocar los componentes: «pitch» es la superficie oscura y «sash», el acento.
 */
 :root {
-  --pl-bg: #eef1ea; /* tiza */
-  --pl-surface: #e2e8dc;
-  --pl-ink: #0f2a1e; /* verde tinta */
-  --pl-muted: #4a6054;
-  --pl-line: rgba(15, 42, 30, 0.2);
-  --pl-line-strong: rgba(15, 42, 30, 0.55);
-  --pl-pitch: #14412d; /* césped */
-  --pl-sash: #d6232b; /* banda: decoración y titulares grandes */
-  /* Contraste (H-22): el rojo de la banda no alcanza AA (4,5:1) en texto pequeño.
-     - --pl-sash-text: rojo para texto pequeño sobre el fondo de la página.
-     - --pl-sash-fill: rojo de relleno que lleva texto blanco encima (5,1:1). */
-  --pl-sash-text: #b91c22; /* 5,7:1 sobre --pl-bg; 5,2:1 sobre --pl-surface */
-  --pl-sash-fill: #d6232b;
+  --pl-bg: #eef4f8;
+  --pl-surface: #dfeaf1;
+  --pl-ink: #0c2340; /* azul marino */
+  --pl-muted: #47607a;
+  --pl-line: rgba(12, 35, 64, 0.2);
+  --pl-line-strong: rgba(12, 35, 64, 0.55);
+  --pl-pitch: #0c2340; /* superficie oscura: logo, botón principal de la portada */
+  --pl-sash: #0f6fb5; /* acento: banda, decoración y titulares grandes */
+  /* Contraste AA (4,5:1 en texto pequeño):
+     - --pl-sash-text: acento para texto pequeño sobre el fondo de la página.
+     - --pl-sash-fill: acento de relleno que lleva texto blanco encima (5,3:1). */
+  --pl-sash-text: #0b639e; /* 5,7:1 sobre --pl-bg; 5,2:1 sobre --pl-surface */
+  --pl-sash-fill: #0f6fb5;
   --pl-on-sash: #ffffff;
+  /* Errores y acciones destructivas: rojo, independiente del acento. */
+  --pl-danger-text: #b91c22;
+  --pl-danger-fill: #d6232b;
 
   /* --font-display y --font-body los define next/font en src/app/layout.tsx */
   --pl-font-display: var(--font-display), "Arial Narrow", Impact, sans-serif;
@@ -27,17 +35,19 @@
 
 .dark,
 [data-theme="dark"] {
-  --pl-bg: #0f2e21;
-  --pl-surface: #143a2a;
-  --pl-ink: #eef1ea;
-  --pl-muted: #a9bcb0;
-  --pl-line: rgba(238, 241, 234, 0.22);
-  --pl-line-strong: rgba(238, 241, 234, 0.6);
-  --pl-pitch: #1d5a40;
-  --pl-sash: #e8353d;
-  --pl-sash-text: #ff8589; /* 6,3:1 sobre --pl-bg; 5,4:1 sobre --pl-surface */
-  /* El rojo claro del modo oscuro solo da 4,2:1 con texto blanco: el relleno no cambia. */
-  --pl-sash-fill: #d6232b;
+  --pl-bg: #0a1d33;
+  --pl-surface: #10294a;
+  --pl-ink: #eef4f8;
+  --pl-muted: #a5b8cc;
+  --pl-line: rgba(238, 244, 248, 0.22);
+  --pl-line-strong: rgba(238, 244, 248, 0.6);
+  --pl-pitch: #17406e;
+  --pl-sash: #4fb3f0;
+  --pl-sash-text: #6cc0f5; /* 8,5:1 sobre --pl-bg; 7,3:1 sobre --pl-surface */
+  /* El celeste claro del modo oscuro no admite texto blanco: el relleno no cambia. */
+  --pl-sash-fill: #0f6fb5;
+  --pl-danger-text: #ff8589;
+  --pl-danger-fill: #d6232b;
 }
 
 .pl-page {
@@ -95,7 +105,7 @@
   color: var(--pl-line);
 }
 
-/* Banda diagonal (la camiseta) — el único gesto grande de la página */
+/* Banda diagonal — el único gesto grande de la página */
 .pl-band {
   position: relative;
   width: calc(100% + 8vw);
@@ -144,8 +154,8 @@
 }
 
 /* El buscador ya marca el foco en su contenedor (anillo de HeroUI). Sin esta regla, el
-   contorno rojo de arriba se aplicaba también al <input> interior y, recortado por el
-   contenedor, se veía como dos líneas rojas. */
+   contorno de foco de arriba se aplicaba también al <input> interior y, recortado por el
+   contenedor, se veía como dos líneas. */
 .pl-page .search-field__input:focus-visible {
   outline: none;
 }
@@ -217,11 +227,11 @@
 }
 
 .pl-state-error {
-  border-top: 3px solid var(--pl-sash);
+  border-top: 3px solid var(--pl-danger-fill);
 }
 
 .pl-state-error .pl-state-kicker {
-  color: var(--pl-sash-text);
+  color: var(--pl-danger-text);
 }
 
 /* ---------- Tabla ---------- */
@@ -231,7 +241,7 @@
   border: 1px solid var(--pl-line);
   border-radius: 0.85rem;
   background: var(--pl-bg);
-  box-shadow: 0 12px 35px rgb(15 42 30 / 5%);
+  box-shadow: 0 12px 35px rgb(12 35 64 / 5%);
 }
 
 .pl-table-topline {

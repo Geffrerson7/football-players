@@ -7,7 +7,7 @@ export default function LoginPage() {
   return (
     <div className="pl-page flex min-h-[75dvh]! items-center justify-center px-5 py-14">
       <section className="w-full max-w-md overflow-hidden rounded-lg border border-(--pl-line) bg-(--pl-surface)">
-        {/* Banda roja: repite el gesto de la portada */}
+        {/* Banda de acento: repite el gesto de la portada */}
         <div aria-hidden="true" className="h-2 w-full bg-(--pl-sash)" />
 
         <div className="px-6 py-8 sm:px-8">

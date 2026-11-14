@@ -101,7 +101,7 @@ export default function PlayerFormModal({ jugador, isOpen, onOpenChange, onGuard
         <Modal.Dialog className="pl-surface h-auto max-h-[90dvh] overflow-hidden rounded-lg border border-(--pl-line) sm:max-w-md">
           <Modal.CloseTrigger />
 
-          {/* Banda roja: repite el gesto de la portada */}
+          {/* Banda de acento: repite el gesto de la portada */}
           <div aria-hidden="true" className="h-2 w-full bg-(--pl-sash)" />
 
           <Modal.Header className="px-6 pt-6">

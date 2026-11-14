@@ -20,7 +20,7 @@ export default function LoginForm() {
       {error && (
         <p
           role="alert"
-          className="rounded-lg border border-(--pl-sash)/40 bg-(--pl-sash)/10 px-3 py-2 text-sm text-(--pl-sash-text)"
+          className="rounded-lg border border-(--pl-danger-fill)/40 bg-(--pl-danger-fill)/10 px-3 py-2 text-sm text-(--pl-danger-text)"
         >
           {error}
         </p>

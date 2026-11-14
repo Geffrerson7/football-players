@@ -1,14 +1,15 @@
 .fp-home-footer {
-  --fp-footer-bg: #0f2a1e;
-  --fp-footer-text: #eef1ea;
-  --fp-footer-muted: #a4b5a8;
-  --fp-footer-red: #d6232b;
-  /* Rojo para texto sobre el fondo oscuro del pie (el de la banda solo da 3:1). */
-  --fp-footer-red-text: #ff8589;
+  /* El pie es oscuro en los dos temas: usa valores fijos de la paleta «Celeste y marino». */
+  --fp-footer-bg: #0c2340;
+  --fp-footer-text: #eef4f8;
+  --fp-footer-muted: #a5b8cc;
+  --fp-footer-accent: #0f6fb5;
+  /* Acento para texto sobre el fondo oscuro del pie (el de relleno solo da 3:1). */
+  --fp-footer-accent-text: #6cc0f5;
 
   color: var(--fp-footer-text);
   background: var(--fp-footer-bg);
-  border-top: 4px solid var(--fp-footer-red);
+  border-top: 4px solid var(--fp-footer-accent);
 }
 
 .fp-footer-inner {
@@ -34,7 +35,7 @@
   width: 3rem;
   height: 3rem;
   place-items: center;
-  background: var(--fp-footer-red);
+  background: var(--fp-footer-accent);
   color: white;
   font-size: 1.15rem;
   font-weight: 900;
@@ -45,7 +46,7 @@
 }
 
 .fp-footer-brand:hover .fp-footer-logo {
-  background: #f02e37;
+  background: #0b5c96;
   transform: translateY(-2px);
 }
 
@@ -82,7 +83,7 @@
 }
 
 .fp-footer-tagline span {
-  color: var(--fp-footer-red-text);
+  color: var(--fp-footer-accent-text);
   font-weight: 900;
 }
 
@@ -109,7 +110,7 @@
   height: 0.45rem;
   flex: 0 0 auto;
   border-radius: 50%;
-  background: var(--fp-footer-red);
+  background: var(--fp-footer-accent);
 }
 
 .fp-footer-bottom {
@@ -128,7 +129,7 @@
 .fp-footer-bottom-line {
   width: 2rem;
   height: 1px;
-  background: var(--fp-footer-red);
+  background: var(--fp-footer-accent);
 }
 
 @media (max-width: 760px) {

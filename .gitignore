@@ -172,3 +172,5 @@ next-env.d.ts
 
 # Vitest
 .vitest/
+
+docs

@@ -7,7 +7,6 @@ import DeletePlayerModal from "./DeletePlayerModal";
 import { EstadoSinResultados, EstadoVacio } from "./EstadosPlantel";
 import PlayerFormModal from "./PlayerFormModal";
 import PlayersTable from "./PlayersTable";
-import { Search, X } from "lucide-react";
 
 const TODOS = "todos";
 
@@ -101,7 +100,7 @@ export default function PlayersView({ jugadores }: { jugadores: JugadorDTO[] }) 
               <Button
                 size="lg"
                 onPress={() => abrirFormulario(null)}
-                className="bg-white font-bold text-[#0f2a1e] shadow-sm transition-transform hover:scale-[1.02]"
+                className="bg-white font-bold text-[#0c2340] shadow-sm transition-transform hover:scale-[1.02]"
               >
                 + Registrar jugador
               </Button>
