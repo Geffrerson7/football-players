@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   calcularEdad,
+  coincideNombre,
   etiquetaEstado,
   fechaAISO,
   formatearFecha,
   hoyISO,
   iniciales,
+  normalizarTexto,
 } from "@/lib/jugadores";
 
 const TZ_ORIGINAL = process.env.TZ;
@@ -102,5 +104,38 @@ describe("etiquetaEstado", () => {
   it("usa un único par de términos", () => {
     expect(etiquetaEstado(true)).toBe("Activo");
     expect(etiquetaEstado(false)).toBe("Inactivo");
+  });
+});
+
+describe("normalizarTexto", () => {
+  it("quita tildes, diéresis y mayúsculas", () => {
+    expect(normalizarTexto("  Sergio AGÜERO  ")).toBe("sergio aguero");
+    expect(normalizarTexto("Ángel Di María")).toBe("angel di maria");
+  });
+
+  it("conserva la ñ como n para que «Nunez» encuentre a «Núñez»", () => {
+    expect(normalizarTexto("Darwin Núñez")).toBe("darwin nunez");
+  });
+});
+
+describe("coincideNombre", () => {
+  it.each([
+    ["Lionel Messi", "messi"],
+    ["Lionel Messi", "LIO"],
+    ["Ángel Di María", "maria"],
+    ["Angel Di Maria", "María"],
+    ["Lionel Messi", "messi lio"],
+    ["Lionel Messi", "  "],
+    ["Lionel Messi", ""],
+  ])("«%s» coincide con «%s»", (nombre, busqueda) => {
+    expect(coincideNombre(nombre, busqueda)).toBe(true);
+  });
+
+  it.each([
+    ["Lionel Messi", "ronaldo"],
+    ["Lionel Messi", "messi ronaldo"],
+    ["Pedri", "pedro"],
+  ])("«%s» no coincide con «%s»", (nombre, busqueda) => {
+    expect(coincideNombre(nombre, busqueda)).toBe(false);
   });
 });

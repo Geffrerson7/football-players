@@ -20,7 +20,7 @@ export default function LoginForm() {
       {error && (
         <p
           role="alert"
-          className="rounded-lg border border-(--pl-sash)/40 bg-(--pl-sash)/10 px-3 py-2 text-sm text-(--pl-sash)"
+          className="rounded-lg border border-(--pl-sash)/40 bg-(--pl-sash)/10 px-3 py-2 text-sm text-(--pl-sash-text)"
         >
           {error}
         </p>
@@ -46,7 +46,7 @@ export default function LoginForm() {
           type="submit"
           isPending={iniciando}
           isDisabled={ocupado}
-          className="bg-(--pl-sash) font-semibold text-white! transition-colors duration-200 hover:bg-(--pl-sash)/85"
+          className="bg-(--pl-sash-fill) font-semibold text-white! transition-colors duration-200 hover:bg-(--pl-sash-fill)/85"
         >
           {iniciando ? "Entrando…" : "Iniciar sesión"}
         </Button>

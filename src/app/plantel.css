@@ -12,7 +12,12 @@
   --pl-line: rgba(15, 42, 30, 0.2);
   --pl-line-strong: rgba(15, 42, 30, 0.55);
   --pl-pitch: #14412d; /* césped */
-  --pl-sash: #d6232b; /* banda */
+  --pl-sash: #d6232b; /* banda: decoración y titulares grandes */
+  /* Contraste (H-22): el rojo de la banda no alcanza AA (4,5:1) en texto pequeño.
+     - --pl-sash-text: rojo para texto pequeño sobre el fondo de la página.
+     - --pl-sash-fill: rojo de relleno que lleva texto blanco encima (5,1:1). */
+  --pl-sash-text: #b91c22; /* 5,7:1 sobre --pl-bg; 5,2:1 sobre --pl-surface */
+  --pl-sash-fill: #d6232b;
   --pl-on-sash: #ffffff;
 
   /* --font-display y --font-body los define next/font en src/app/layout.tsx */
@@ -30,6 +35,9 @@
   --pl-line-strong: rgba(238, 241, 234, 0.6);
   --pl-pitch: #1d5a40;
   --pl-sash: #e8353d;
+  --pl-sash-text: #ff8589; /* 6,3:1 sobre --pl-bg; 5,4:1 sobre --pl-surface */
+  /* El rojo claro del modo oscuro solo da 4,2:1 con texto blanco: el relleno no cambia. */
+  --pl-sash-fill: #d6232b;
 }
 
 .pl-page {
@@ -93,7 +101,7 @@
   width: calc(100% + 8vw);
   margin-left: -4vw;
   padding-inline: 4vw;
-  background: var(--pl-sash);
+  background: var(--pl-sash-fill);
   color: var(--pl-on-sash);
   transform: rotate(-2.6deg);
   transform-origin: left center;
@@ -135,6 +143,13 @@
   outline-offset: 3px;
 }
 
+/* El buscador ya marca el foco en su contenedor (anillo de HeroUI). Sin esta regla, el
+   contorno rojo de arriba se aplicaba también al <input> interior y, recortado por el
+   contenedor, se veía como dos líneas rojas. */
+.pl-page .search-field__input:focus-visible {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pl-band {
     animation: none;
@@ -160,7 +175,7 @@
 }
 
 .pl-kicker {
-  color: var(--pl-sash);
+  color: var(--pl-sash-text);
 }
 
 .pl-kicker-line {
@@ -206,7 +221,7 @@
 }
 
 .pl-state-error .pl-state-kicker {
-  color: var(--pl-sash);
+  color: var(--pl-sash-text);
 }
 
 /* ---------- Tabla ---------- */
@@ -244,9 +259,48 @@
   color: var(--pl-ink);
 }
 
-/* Mantiene la tabla legible en pantallas pequeñas */
+/* Entre 640 px y el ancho completo, la tabla se desplaza en horizontal.
+   Por debajo de 640 px se sustituye por tarjetas (H-26). */
 .pl-table [role="grid"] {
   min-width: 850px;
+}
+
+/* ---------- Tarjetas de jugador (móvil) ---------- */
+
+.pl-cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pl-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.75rem 1rem;
+  padding: 1rem 0.9rem;
+  border-bottom: 1px solid var(--pl-line);
+}
+
+.pl-card:last-child {
+  border-bottom: 0;
+}
+
+.pl-card-datos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  grid-column: 1 / -1;
+}
+
+.pl-card-acciones {
+  display: flex;
+  gap: 0.5rem;
+  grid-column: 1 / -1;
+}
+
+.pl-card-acciones > * {
+  flex: 1;
 }
 
 /* Contraste para encabezados y filas */
@@ -296,4 +350,18 @@
   .pl-table tbody tr {
     transition: none;
   }
+}
+
+/* ---------- Etiqueta de estado ---------- */
+
+/* En el tema claro, el verde de la etiqueta «Activo» de HeroUI da 4,3:1 (AA pide 4,5:1).
+   Se oscurece solo el texto; el fondo y el tema oscuro no cambian. */
+:root:not(.dark) .pl-estado-activo,
+:root:not(.dark) .pl-estado-activo .chip__label {
+  color: #1c5c33;
+}
+
+:root:not(.dark) .pl-estado-inactivo,
+:root:not(.dark) .pl-estado-inactivo .chip__label {
+  color: #9b1c1c;
 }

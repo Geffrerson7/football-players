@@ -43,7 +43,7 @@ export function ThemeSwitcher() {
             aria-pressed={activo}
             onPress={() => setTheme(valor)}
             className={`gap-2 rounded-lg px-3 py-2 ${
-              activo ? "bg-(--pl-sash) text-white" : "bg-transparent text-(--pl-ink) hover:bg-(--pl-bg)"
+              activo ? "bg-(--pl-sash-fill) text-white" : "bg-transparent text-(--pl-ink) hover:bg-(--pl-bg)"
             }`}
           >
             <Icono size={20} aria-hidden="true" />

@@ -10,8 +10,9 @@ import { ThemeSwitcher } from "./ThemeSwitcher";
 const navegacion = [
   { label: "Inicio", href: "/", exacto: true },
   { label: "Jugadores", href: "/jugadores" },
-  { label: "Equipos", href: "/equipos" },
-  { label: "Partidos", href: "/partidos" },
+  // Secciones aún sin implementar (H-08): se anuncian, pero no enlazan a un 404.
+  { label: "Equipos", href: "/equipos", pendiente: true },
+  { label: "Partidos", href: "/partidos", pendiente: true },
 ];
 
 type Props = {
@@ -41,7 +42,20 @@ export default function Navbar({ usuario }: Props) {
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           {usuario && (
             <nav aria-label="Navegación principal" className="flex flex-wrap items-center gap-4 sm:gap-6">
-              {navegacion.map(({ label, href, exacto }) => {
+              {navegacion.map(({ label, href, exacto, pendiente }) => {
+                if (pendiente) {
+                  return (
+                    <span
+                      key={href}
+                      className="flex items-center gap-1.5 text-sm font-semibold text-(--pl-muted)"
+                    >
+                      {label}
+                      <span className="rounded border border-dashed border-(--pl-line-strong) px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider">
+                        Próximamente
+                      </span>
+                    </span>
+                  );
+                }
                 const activo = exacto ? pathname === href : pathname.startsWith(href);
                 return (
                   <Link
@@ -49,7 +63,7 @@ export default function Navbar({ usuario }: Props) {
                     href={href}
                     aria-current={activo ? "page" : undefined}
                     className={`text-sm font-semibold transition-colors ${
-                      activo ? "text-(--pl-sash)" : "text-(--pl-muted) hover:text-(--pl-ink)"
+                      activo ? "text-(--pl-sash-text)" : "text-(--pl-muted) hover:text-(--pl-ink)"
                     }`}
                   >
                     {label}
