@@ -1,0 +1,360 @@
+/*
+  Torneo — estilos de Equipos y Partidos (fase 6).
+  Usa los tokens --pl-* de plantel.css; no define colores propios.
+*/
+
+.tn-container {
+  width: 100%;
+  max-width: 80rem;
+  margin-inline: auto;
+  padding: 2.5rem 1.25rem 5rem;
+}
+
+@media (min-width: 640px) {
+  .tn-container {
+    padding: 3.5rem 2rem 6rem;
+  }
+}
+
+/* ---------- Cabecera de página ---------- */
+
+.tn-header {
+  padding-bottom: 2.5rem;
+  border-bottom: 1px solid var(--pl-line);
+}
+
+.tn-header-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.tn-title {
+  font-size: clamp(3rem, 8vw, 6.5rem);
+  overflow-wrap: anywhere;
+}
+
+.tn-lead {
+  max-width: 40rem;
+  margin-top: 1.25rem;
+  color: var(--pl-muted);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+/* ---------- Secciones ---------- */
+
+.tn-section {
+  padding-top: 3rem;
+}
+
+.tn-section-heading {
+  margin-bottom: 1.5rem;
+}
+
+.tn-section-heading h2 {
+  margin-top: 0.4rem;
+  font-family: var(--pl-font-display);
+  font-size: clamp(2.25rem, 5vw, 3.75rem);
+  font-weight: 900;
+  line-height: 0.95;
+}
+
+.tn-section-heading p {
+  max-width: 44rem;
+  margin-top: 0.75rem;
+  color: var(--pl-muted);
+  line-height: 1.7;
+}
+
+.tn-stack {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .tn-stack-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+/* ---------- Tablas ---------- */
+
+/* Las tablas anchas se desplazan dentro de su caja, nunca la página.
+   La caja recibe el foco para poder desplazarla con el teclado. */
+.tn-scroll {
+  overflow-x: auto;
+}
+
+.tn-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.tn-table th,
+.tn-table td {
+  padding: 0.8rem 0.75rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.tn-table th:first-child,
+.tn-table td:first-child {
+  padding-left: 1.25rem;
+}
+
+.tn-table th:last-child,
+.tn-table td:last-child {
+  padding-right: 1.25rem;
+}
+
+.tn-table thead th {
+  background: var(--pl-surface);
+  color: var(--pl-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tn-table thead abbr {
+  text-decoration: none;
+}
+
+.tn-table tbody tr {
+  border-top: 1px solid var(--pl-line);
+}
+
+.tn-table tbody th {
+  font-weight: 700;
+}
+
+.tn-table a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.tn-table .tn-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tn-table .tn-strong {
+  font-weight: 800;
+}
+
+.tn-table .tn-muted {
+  color: var(--pl-muted);
+}
+
+/* Fila del equipo que se está consultando */
+.tn-table tr[aria-current="true"] {
+  background: var(--pl-surface);
+  box-shadow: inset 3px 0 0 var(--pl-sash);
+}
+
+.tn-empty {
+  padding: 1.5rem 1.25rem;
+  color: var(--pl-muted);
+}
+
+/* ---------- Partidos ---------- */
+
+.tn-matches {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tn-match {
+  padding: 1.25rem;
+  border-top: 1px solid var(--pl-line);
+}
+
+.tn-match:first-child {
+  border-top: 0;
+}
+
+.tn-match-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  color: var(--pl-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tn-match-score {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.tn-team {
+  min-width: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.tn-team a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.tn-team-local {
+  text-align: right;
+}
+
+.tn-score {
+  min-width: 4.5rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid var(--pl-line-strong);
+  font-family: var(--pl-font-display);
+  font-size: 1.9rem;
+  font-weight: 900;
+  line-height: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tn-score-pendiente {
+  border-style: dashed;
+  color: var(--pl-muted);
+  font-family: var(--pl-font-body);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tn-match-goals {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+  color: var(--pl-muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.tn-match-goals ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tn-match-goals ul:first-child {
+  text-align: right;
+}
+
+.tn-match-goals ul:last-child {
+  grid-column: 3;
+}
+
+.tn-match-goals a {
+  color: var(--pl-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Etiquetas ---------- */
+
+.tn-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border: 1px solid var(--pl-line-strong);
+  color: var(--pl-ink);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.tn-badge-victoria {
+  border-color: var(--pl-sash-fill);
+  background: var(--pl-sash-fill);
+  color: #ffffff;
+}
+
+.tn-badge-empate {
+  background: var(--pl-surface);
+}
+
+.tn-badge-derrota {
+  border-style: dashed;
+  color: var(--pl-muted);
+}
+
+/* ---------- Plantilla de una selección ---------- */
+
+.tn-squad {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tn-squad li {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.25rem;
+  border-top: 1px solid var(--pl-line);
+}
+
+.tn-squad li:first-child {
+  border-top: 0;
+}
+
+.tn-squad a {
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.tn-squad-info {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.tn-squad-info p {
+  color: var(--pl-muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 640px) {
+  .tn-match {
+    padding: 1rem 0.9rem;
+  }
+
+  .tn-team {
+    font-size: 0.95rem;
+  }
+
+  .tn-score {
+    min-width: 3.75rem;
+    font-size: 1.5rem;
+  }
+
+  .tn-match-goals {
+    grid-template-columns: minmax(0, 1fr) 3.75rem minmax(0, 1fr);
+  }
+
+  .tn-table th:first-child,
+  .tn-table td:first-child {
+    padding-left: 0.9rem;
+  }
+}

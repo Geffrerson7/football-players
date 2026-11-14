@@ -238,23 +238,6 @@
   text-underline-offset: 5px;
 }
 
-/* Sección aún no disponible (H-08): sin enlace y con aviso. */
-.fp-home-card .fp-home-card-pendiente {
-  margin-top: auto;
-  padding-top: 1.5rem;
-}
-
-.fp-home-card-pendiente span {
-  display: inline-block;
-  padding: 0.3rem 0.6rem;
-  border: 1px dashed var(--pl-line-strong);
-  color: var(--pl-muted);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
 @media (max-width: 760px) {
   .fp-home-hero-inner {
     padding-top: 3.5rem;

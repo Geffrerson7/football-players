@@ -1,7 +1,16 @@
 import { z } from "zod";
-import { DORSAL_MAX, DORSAL_MIN, FECHA_MINIMA, POSICIONES, hoyISO } from "./jugadores";
+import {
+  DORSAL_MAX,
+  DORSAL_MIN,
+  FECHA_MINIMA,
+  POSICIONES,
+  SIN_EQUIPO,
+  hoyISO,
+} from "./jugadores";
 
 const MENSAJE_DORSAL = `Ingresa un dorsal entre ${DORSAL_MIN} y ${DORSAL_MAX}.`;
+const MENSAJE_EQUIPO = "Elige una selección válida.";
+const ENTERO_MAXIMO = 2_147_483_647; // rango de INTEGER en Postgres
 
 /** Reglas de un jugador. El servidor siempre las aplica, aunque el cliente ya haya validado. */
 export const jugadorSchema = z.object({
@@ -24,6 +33,16 @@ export const jugadorSchema = z.object({
       when: (payload) => payload.issues.length === 0,
     }),
   activo: z.boolean(),
+  // Opcional: vacío o «ninguna» significa que el jugador no tiene selección.
+  equipoId: z.preprocess(
+    (valor) => (valor === "" || valor === SIN_EQUIPO || valor === undefined ? null : valor),
+    z.coerce
+      .number({ error: MENSAJE_EQUIPO })
+      .int(MENSAJE_EQUIPO)
+      .min(1, MENSAJE_EQUIPO)
+      .max(ENTERO_MAXIMO, MENSAJE_EQUIPO)
+      .nullable(),
+  ),
 });
 
 export type JugadorInput = z.infer<typeof jugadorSchema>;

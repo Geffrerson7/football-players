@@ -6,6 +6,8 @@ export type Posicion = (typeof POSICIONES)[number];
 export const DORSAL_MIN = 1;
 export const DORSAL_MAX = 99;
 export const FECHA_MINIMA = "1900-01-01";
+/** Valor del campo «Selección» del formulario cuando el jugador no tiene ninguna. */
+export const SIN_EQUIPO = "ninguna";
 
 /** Jugador serializable que viaja del servidor a los componentes cliente. */
 export type JugadorDTO = {
@@ -16,7 +18,12 @@ export type JugadorDTO = {
   activo: boolean;
   /** Fecha en formato ISO "YYYY-MM-DD" o null. */
   fechaNacimiento: string | null;
+  /** Selección del jugador; null si no pertenece a ningún equipo del torneo. */
+  equipo: { id: number; nombre: string } | null;
 };
+
+/** Opción del campo «Selección» del formulario. */
+export type OpcionEquipo = { id: number; nombre: string };
 
 /** Convierte un DATE de Postgres (Prisma lo entrega como medianoche UTC) a "YYYY-MM-DD". */
 export function fechaAISO(fecha: Date | null): string | null {

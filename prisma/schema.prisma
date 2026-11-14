@@ -1,8 +1,12 @@
-// Esquema migrado desde Supabase (backup del 29-10-2026).
-// Refleja fielmente las tablas originales del esquema `public`:
-// mismos nombres de tabla, columnas, tipos, valores por defecto y claves foráneas.
+// Esquema migrado desde Supabase (backup del 29-10-2026) y corregido en la fase 6.
 // Los modelos usan nombres en camelCase y se mapean a las columnas snake_case.
-// Las restricciones CHECK no se pueden expresar en Prisma; están en la migración inicial.
+//
+// Lo que Prisma no puede expresar vive en las migraciones:
+// - Restricciones CHECK (dorsal, fechas, rol, equipos distintos en un partido, minuto del gol).
+// - El trigger que exige que el equipo de un gol sea uno de los dos del partido.
+// - Las vistas `marcadores` y `posiciones_por_grupo`, que se consultan con SQL
+//   (src/lib/torneo-consultas.ts). El marcador y la tabla de posiciones no se guardan:
+//   se calculan a partir de `goles` y `partidos`.
 
 generator client {
   provider = "prisma-client"
@@ -20,10 +24,16 @@ model Jugador {
   dorsal          Int
   activo          Boolean?  @default(true)
   fechaNacimiento DateTime? @map("fecha_nacimiento") @db.Date
+  // Selección del jugador. Es opcional: puede no estar entre los equipos del torneo.
+  equipoId        Int?      @map("equipo_id")
 
+  equipo  Equipo?         @relation(fields: [equipoId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   detalle DetalleJugador?
   goles   Gol[]
 
+  // Regla del dorsal (H-07): único dentro de cada selección. PostgreSQL trata los NULL
+  // como distintos, así que los jugadores sin selección pueden repetir dorsal.
+  @@unique([equipoId, dorsal])
   @@map("jugadores")
 }
 
@@ -51,59 +61,52 @@ model Equipo {
   grupo         String    @db.Char(1)
   rankingFifa   Int       @map("ranking_fifa")
   clasificado   Boolean?  @default(true)
-  fechaCreacion DateTime? @default(now()) @map("fecha_creacion") @db.Timestamp(6)
+  fechaCreacion DateTime? @default(now()) @map("fecha_creacion") @db.Timestamptz(6)
 
-  partidosLocal     Partido[]       @relation("PartidoLocal")
-  partidosVisitante Partido[]       @relation("PartidoVisitante")
-  posiciones        PosicionGrupo[]
+  jugadores         Jugador[]
+  partidosLocal     Partido[] @relation("PartidoLocal")
+  partidosVisitante Partido[] @relation("PartidoVisitante")
+  goles             Gol[]
 
   @@map("equipos")
 }
 
 model Partido {
-  id             Int       @id @default(autoincrement())
-  localId        Int       @map("local_id")
-  visitanteId    Int       @map("visitante_id")
-  golesLocal     Int?      @default(0) @map("goles_local")
-  golesVisitante Int?      @default(0) @map("goles_visitante")
-  fase           String    @db.VarChar(30)
-  fecha          DateTime? @db.Timestamp(6)
+  id          Int       @id @default(autoincrement())
+  localId     Int       @map("local_id")
+  visitanteId Int       @map("visitante_id")
+  fase        String    @db.VarChar(30)
+  fecha       DateTime? @db.Timestamptz(6)
+  // Un partido sin goles puede ser un 0-0 o no haberse jugado: lo distingue esta columna.
+  jugado      Boolean   @default(false)
 
   local     Equipo @relation("PartidoLocal", fields: [localId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   visitante Equipo @relation("PartidoVisitante", fields: [visitanteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   goles     Gol[]
 
+  @@index([localId])
+  @@index([visitanteId])
   @@map("partidos")
 }
 
 model Gol {
   id        Int      @id @default(autoincrement())
   partidoId Int      @map("partido_id")
-  jugadorId Int      @map("jugador_id")
-  minuto    Int
+  // Equipo al que sube el gol al marcador. Un trigger exige que sea uno de los dos del partido.
+  equipoId  Int      @map("equipo_id")
+  // NULL = goleador no registrado (goles que solo constaban en el marcador antiguo).
+  jugadorId Int?     @map("jugador_id")
+  minuto    Int?
   esPenal   Boolean? @map("es_penal")
 
-  partido Partido @relation(fields: [partidoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  jugador Jugador @relation(fields: [jugadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  partido Partido  @relation(fields: [partidoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  equipo  Equipo   @relation(fields: [equipoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  jugador Jugador? @relation(fields: [jugadorId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
+  @@index([partidoId])
+  @@index([equipoId])
+  @@index([jugadorId])
   @@map("goles")
-}
-
-model PosicionGrupo {
-  id       Int    @id @default(autoincrement())
-  equipoId Int    @map("equipo_id")
-  grupo    String @db.Char(2)
-  pj       Int    @default(0)
-  pg       Int    @default(0)
-  pe       Int    @default(0)
-  pp       Int    @default(0)
-  gf       Int    @default(0)
-  gc       Int    @default(0)
-  puntos   Int    @default(0)
-
-  equipo Equipo @relation(fields: [equipoId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@map("posiciones_por_grupo")
 }
 
 // --- Autenticación (Better Auth) ---

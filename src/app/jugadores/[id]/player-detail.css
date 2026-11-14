@@ -118,6 +118,16 @@
   text-transform: uppercase;
 }
 
+.pl-detail-tag-link {
+  color: var(--pl-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.pl-detail-tag-link:hover {
+  background: var(--pl-surface);
+}
+
 .pl-detail-status-active {
   background: var(--pl-pitch);
   color: white;

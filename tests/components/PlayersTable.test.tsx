@@ -75,6 +75,20 @@ describe("PlayersTable", () => {
     expect(within(segunda).getByText(/^7 feb\.? 1990$/)).toBeInTheDocument();
   });
 
+  it("enlaza a la selección del jugador, o indica que no tiene (H-31)", () => {
+    renderTabla([
+      jugador({ id: 4, nombre: "Lamine Yamal", equipo: { id: 4, nombre: "España" } }),
+      jugador({ id: 12, nombre: "Cristiano Ronaldo", equipo: null }),
+    ]);
+
+    const [primera, segunda] = filasDeDatos();
+    expect(within(primera).getByRole("link", { name: "España" })).toHaveAttribute(
+      "href",
+      "/equipos/4",
+    );
+    expect(within(segunda).getByText("Sin selección")).toBeInTheDocument();
+  });
+
   it("avisa al padre al pulsar Editar o Eliminar", async () => {
     const yamal = jugador({ id: 4, nombre: "Lamine Yamal" });
     const { user, onEditar, onEliminar } = renderTabla([yamal]);

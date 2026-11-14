@@ -1,20 +1,21 @@
 import "server-only";
-import type { Jugador } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import { fechaAISO, type JugadorDTO } from "@/lib/jugadores";
 import { prisma } from "@/lib/prisma";
 import { exigirSesion } from "@/lib/sesion";
 
-const camposJugador = {
+export const camposJugador = {
   id: true,
   nombre: true,
   posicion: true,
   dorsal: true,
   activo: true,
   fechaNacimiento: true,
+  equipo: { select: { id: true, nombre: true } },
 } as const;
 
 export function aJugadorDTO(
-  jugador: Pick<Jugador, keyof typeof camposJugador>,
+  jugador: Prisma.JugadorGetPayload<{ select: typeof camposJugador }>,
 ): JugadorDTO {
   return {
     id: jugador.id,
@@ -24,6 +25,7 @@ export function aJugadorDTO(
     // La columna admite NULL (DEFAULT true); un nulo se trata como activo.
     activo: jugador.activo ?? true,
     fechaNacimiento: fechaAISO(jugador.fechaNacimiento),
+    equipo: jugador.equipo,
   };
 }
 

@@ -49,6 +49,8 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 
 La fase 3 cerró el riesgo que quedaba: **la aplicación exige iniciar sesión** (Better Auth) y **solo el rol `admin` puede modificar datos**; el permiso se comprueba en el servidor, en cada Server Action.
 
+La fase 6 corrigió el modelo de datos: **cada jugador pertenece a una selección**, el dorsal es único dentro de ella, y **el marcador y la tabla de posiciones se calculan** a partir de los goles en lugar de guardarse dos veces. Sobre ese modelo se construyeron las secciones Equipos y Partidos, la tabla de goleadores y las estadísticas del perfil.
+
 ### Fortalezas (se mantienen)
 
 - Identidad visual sólida y coherente, con tokens `--pl-*` para modo claro y oscuro.
@@ -66,16 +68,17 @@ La fase 3 cerró el riesgo que quedaba: **la aplicación exige iniciar sesión**
 - Errores de base de datos traducidos a mensajes claros (registro inexistente, jugador con goles).
 - Autenticación con Better Auth: inicio de sesión obligatorio, roles `admin` y `demo`, y control de acceso en el servidor (fase 3).
 - Restricciones `CHECK` en la base de datos para el dorsal, la fecha de nacimiento y el rol.
+- Modelo de datos sin duplicidades (fase 6): jugadores con selección, `UNIQUE(equipo_id, dorsal)`, marcador y posiciones como vistas SQL, índices en las claves foráneas.
+- Secciones Equipos y Partidos, goleadores y estadísticas en el perfil (fase 6).
 
 ### Debilidades vigentes
 
 - No hay pruebas en un navegador real ni medición de cobertura (las unitarias, de componentes y de integración ya existen; fase 2).
-- Las secciones Equipos y Partidos siguen sin existir.
-- El modelo de datos tiene inconsistencias heredadas (H-31 a H-35).
+- Equipos, partidos y goles son de solo lectura: no hay formularios para registrarlos (se cargan con el seed o con SQL).
 
 ### Riesgos principales
 
-1. Jugadores sin equipo y goles registrados dos veces impedirán construir estadísticas fiables (H-31, H-32).
+1. La migración de la fase 6 transforma datos y elimina columnas: en Neon debe aplicarse con `pnpm db:deploy` **antes** de desplegar el código nuevo (ver fase 6).
 2. El límite de intentos de inicio de sesión vive en la memoria del proceso: en un entorno serverless es una protección de «mejor esfuerzo» (ver fase 3).
 
 ---
@@ -86,13 +89,13 @@ La fase 3 cerró el riesgo que quedaba: **la aplicación exige iniciar sesión**
 |---|---|---|---|
 | Arquitectura | 6 | 8 | Separación clara: consultas en `data.ts` (solo servidor), mutaciones en `actions.ts`, presentación en componentes. |
 | Calidad del código | 6 | 8 | TypeScript estricto, lint y typecheck limpios, sin código muerto ni duplicado conocido. |
-| Funcionalidad | 5 | 6 | Bugs del CRUD corregidos; Equipos y Partidos siguen sin existir. |
-| Base de datos | 4 | 6 | Esquema y migraciones en el repo, seed reproducible, `CHECK` de dorsal y fecha de nacimiento. Persisten los problemas del modelo (H-31 a H-35) y los dorsales repetidos. |
+| Funcionalidad | 5 | 8 | Bugs del CRUD corregidos; Equipos, Partidos, posiciones, goleadores y estadísticas del perfil implementados (fase 6). Equipos, partidos y goles aún no se editan desde la aplicación. |
+| Base de datos | 4 | 8 | Esquema y migraciones en el repo, seed reproducible y restricciones `CHECK`. En la fase 6: `equipo_id`, `UNIQUE(equipo_id, dorsal)`, marcador y posiciones calculados con vistas, `timestamptz` e índices en las FK (H-07 y H-31 a H-35). |
 | Seguridad | 3 | 8 | Sin credenciales en el navegador, validación en el servidor, proyecto de Supabase desactivado, inicio de sesión obligatorio y control de acceso por rol en cada Server Action. El límite de intentos de inicio de sesión es de «mejor esfuerzo». |
 | UI/UX | 7 | 7 | Mismo diseño, revisado en el navegador por el propietario tras la migración; terminología y etiquetas corregidas. Tabla en móvil y secciones vacías sin resolver. |
 | Rendimiento | 7 | 7 | Código dividido por ruta y fuentes alojadas localmente; el CSS de HeroUI sigue completo. |
 | Accesibilidad | 5 | 6 | `lang="es"`, un solo `<main>`, `<nav>` en la paginación. El contraste en modo oscuro sigue sin corregir. |
-| Testing | 1 | 7 | 158 pruebas (unitarias, de componentes y de integración contra PostgreSQL, incluido el control de acceso con sesiones reales) con `pnpm test` y CI. Faltan pruebas en navegador y medición de cobertura. |
+| Testing | 1 | 7 | 266 pruebas (unitarias, de componentes y de integración contra PostgreSQL, incluido el control de acceso con sesiones reales) con `pnpm test` y CI. Faltan pruebas en navegador y medición de cobertura. |
 | Mantenibilidad | 5 | 8 | Formulario único, utilidades centralizadas, README fiel al código. |
 
 ---
@@ -134,17 +137,19 @@ La fase 3 cerró el riesgo que quedaba: **la aplicación exige iniciar sesión**
   - Rechazadas en el cliente (`min`/`max` y `validate`) y en el servidor (`src/lib/validacion.ts`).
   - Rechazadas también en la base de datos (fase 3): `chk_fecha_nacimiento_rango` exige una fecha entre 1900-01-01 y hoy, con un día de margen por las zonas horarias. Probado en `tests/integration/jugadores-data.test.ts`.
 
-#### H-07 · Dorsales duplicados · 🔴 Vigente
+#### H-07 · Dorsales duplicados · ✅ Resuelto (fase 6)
 - **Categoría:** Datos · **Certeza:** Confirmado (backup) · **Severidad:** media
-- **Evidencia:** no existe `UNIQUE(dorsal)` y los datos ya tienen repetidos: el 10 aparece en 5 jugadores y el 7 en 2.
-- **Avance (fase 3):** la base de datos ya limita el dorsal a 1-99 (`chk_dorsal_rango`).
-- **Solución pendiente:** decidir la regla de negocio. ¿El dorsal debe ser único globalmente o por equipo? Depende de H-31: los jugadores son de selecciones distintas, así que el 10 repetido es legítimo y una restricción `UNIQUE(dorsal)` global sería incorrecta. Se aplaza a la fase 6, junto con `equipo_id`: entonces, limpiar los duplicados, añadir `UNIQUE(equipo_id, dorsal)` y mostrar un mensaje específico (código `P2002`).
+- **Evidencia original:** no existía ninguna regla y los datos tenían repetidos: el 10 aparecía en 5 jugadores y el 7 en 2.
+- **Regla de negocio:** el dorsal es único **dentro de cada selección**. Los repetidos eran legítimos (jugadores de selecciones distintas), así que no hubo que cambiar ningún dorsal.
+- **Estado actual:**
+  - `UNIQUE(equipo_id, dorsal)` en la base de datos. Los jugadores sin selección pueden repetir dorsal (PostgreSQL trata los `NULL` como distintos).
+  - La base sigue limitando el dorsal a 1-99 (`chk_dorsal_rango`, fase 3).
+  - Las Server Actions traducen el error `P2002`: «El dorsal 10 ya lo lleva otro jugador de esa selección.», asociado al campo del dorsal.
+  - Limpieza de duplicados en la migración y en el seed: si dos jugadores de una misma selección compartieran dorsal, solo el más antiguo recibe la selección. Con los datos actuales no ocurre.
 
-#### H-08 · Navegación a secciones que no existen · 🔴 Vigente
+#### H-08 · Navegación a secciones que no existen · ✅ Resuelto (fase 6)
 - **Categoría:** Funcional / UX · **Certeza:** Confirmado · **Severidad:** media
-- **Ubicación actual:** `src/components/Navbar.tsx` (navegación) y `src/app/page.tsx` (tarjetas de la portada).
-- **Evidencia:** `/equipos` y `/partidos` devuelven 404.
-- **Solución:** implementarlas (fase 6) o marcarlas como «Próximamente».
+- **Estado actual:** `/equipos`, `/equipos/[id]` y `/partidos` existen. La navegación (`src/components/Navbar.tsx`) y las tarjetas de la portada (`src/app/page.tsx`) enlazan a ellas; ya no queda ningún aviso «Próximamente».
 
 #### H-09 · Terminología de estado inconsistente · ✅ Resuelto
 - **Categoría:** UX · **Certeza:** Confirmado · **Severidad:** baja
@@ -262,41 +267,43 @@ La fase 3 cerró el riesgo que quedaba: **la aplicación exige iniciar sesión**
 
 ### Hallazgos nuevos del backup (modelo de datos)
 
-#### H-31 · Los jugadores no pertenecen a ningún equipo · 🔴 Vigente
-- **Categoría:** Base de datos · **Certeza:** Confirmado · **Severidad:** alta (bloquea funcionalidades)
-- **Evidencia:** `jugadores` no tiene `equipo_id`. `goles` se relaciona con `jugadores` y `partidos`, pero no se puede saber para qué selección marcó cada jugador.
-- **Impacto:** no se pueden construir plantillas por equipo, goleadores por selección ni validar que un gol sea de un jugador de uno de los dos equipos.
-- **Solución:** añadir `equipo_id` (FK a `equipos`) a `jugadores` y asignar los 12 jugadores existentes.
+#### H-31 · Los jugadores no pertenecen a ningún equipo · ✅ Resuelto (fase 6)
+- **Categoría:** Base de datos · **Certeza:** Confirmado · **Severidad:** alta (bloqueaba funcionalidades)
+- **Estado actual:**
+  - `jugadores.equipo_id` (FK a `equipos`, `ON DELETE SET NULL`). Es opcional: un jugador puede no ser de ninguna selección del torneo.
+  - La migración asigna la selección a partir de la nacionalidad de la ficha: 10 de los 12 jugadores quedan asignados. Los jugadores 12 (Portugal) y 14 (sin ficha) quedan sin selección y se pueden asignar desde el formulario.
+  - El formulario de jugador tiene un campo «Selección»; la tabla y el perfil la muestran con enlace.
 
-#### H-32 · Goles registrados dos veces · 🔴 Vigente
+#### H-32 · Goles registrados dos veces · ✅ Resuelto (fase 6)
 - **Categoría:** Integridad · **Certeza:** Confirmado · **Severidad:** media
-- **Evidencia:** `partidos.goles_local` y `partidos.goles_visitante` guardan el marcador, y la tabla `goles` guarda cada gol. Nada garantiza que coincidan.
-- **Solución:** calcular el marcador a partir de `goles` (vista o consulta) o validar la coincidencia al registrar.
+- **Estado actual:**
+  - Se eliminan `partidos.goles_local` y `partidos.goles_visitante`. El marcador se lee de la vista `marcadores`, que cuenta las filas de `goles`.
+  - Cada gol tiene `equipo_id` (a quién le sube al marcador). Un trigger exige que sea uno de los dos equipos del partido.
+  - `partidos.jugado` distingue un 0-0 de un partido por jugar.
+  - **Datos conservados:** el marcador guardado sumaba 27 goles y la tabla `goles` solo detallaba 10. La diferencia se añade como 17 goles sin goleador ni minuto, de modo que ningún resultado cambia. `goles.jugador_id` y `goles.minuto` pasan a ser opcionales por ese motivo.
 
-#### H-33 · Tabla de posiciones guardada en lugar de calculada · 🔴 Vigente
+#### H-33 · Tabla de posiciones guardada en lugar de calculada · ✅ Resuelto (fase 6)
 - **Categoría:** Integridad · **Certeza:** Confirmado · **Severidad:** media
-- **Evidencia:** `posiciones_por_grupo` guarda PJ, PG, PE, PP, GF, GC y puntos a mano, que pueden contradecir a `partidos`.
-- **Solución:** sustituirla por una vista SQL calculada desde `partidos`.
+- **Estado actual:** la tabla `posiciones_por_grupo` se sustituye por una vista con el mismo nombre, calculada con los partidos jugados de la fase de grupos (3 puntos por victoria, 1 por empate). El desempate (puntos, diferencia de goles, goles a favor, nombre) se aplica en `ordenarPosiciones` (`src/lib/torneo.ts`).
+- **Nota:** los valores guardados a mano se descartan; la vista manda.
 
-#### H-34 · Tipos de columna inconsistentes · 🔴 Vigente
+#### H-34 · Tipos de columna inconsistentes · ✅ Resuelto (fase 6)
 - **Categoría:** Base de datos · **Certeza:** Confirmado · **Severidad:** baja
-- **Evidencia:**
-  - El grupo es `char(1)` en `equipos` y `char(2)` en `posiciones_por_grupo` (los valores quedan como `"A "`).
-  - `equipos.fecha_creacion` y `partidos.fecha` son `timestamp` sin zona horaria.
-- **Solución:** unificar el grupo en `char(1)` y usar `timestamptz`, con una migración que convierta los valores.
+- **Estado actual:**
+  - `equipos.fecha_creacion` y `partidos.fecha` son `timestamptz`; los valores existentes se interpretan como UTC.
+  - El grupo solo existe como `char(1)` en `equipos`: la vista de posiciones lo lee de ahí.
 
-#### H-35 · No hay índices en las claves foráneas · 🔴 Vigente (prematuro)
+#### H-35 · No hay índices en las claves foráneas · ✅ Resuelto (fase 6)
 - **Categoría:** Rendimiento de base de datos · **Certeza:** Confirmado · **Severidad:** baja
-- **Evidencia:** PostgreSQL no crea índices automáticamente en las columnas FK (`goles.jugador_id`, `goles.partido_id`, `partidos.local_id`, etc.).
-- **Impacto:** nulo con decenas de filas. Conviene añadirlos al implementar estadísticas (fase 6).
+- **Estado actual:** índices en `goles(partido_id)`, `goles(equipo_id)`, `goles(jugador_id)`, `partidos(local_id)` y `partidos(visitante_id)`. El índice único `(equipo_id, dorsal)` cubre `jugadores.equipo_id`.
 
 ### Resumen de estados
 
 | Estado | Hallazgos |
 |---|---|
-| ✅ Resuelto (21) | H-01, H-02, H-03, H-04, H-05, H-06, H-09, H-10, H-12, H-13, H-14, H-17, H-18, H-20, H-21, H-23, H-24, H-25, H-27, H-28, H-29 |
+| ✅ Resuelto (28) | H-01, H-02, H-03, H-04, H-05, H-06, H-07, H-08, H-09, H-10, H-12, H-13, H-14, H-17, H-18, H-20, H-21, H-23, H-24, H-25, H-27, H-28, H-29, H-31, H-32, H-33, H-34, H-35 |
 | 🟡 Parcial (1) | H-30 |
-| 🔴 Vigente (11) | H-07, H-08, H-16, H-19, H-22, H-26, H-31, H-32, H-33, H-34, H-35 |
+| 🔴 Vigente (4) | H-16, H-19, H-22, H-26 |
 | ⚪ Obsoleto (1) | H-11 |
 | ➖ Descartado (1) | H-15 |
 
@@ -309,8 +316,8 @@ La fase 3 cerró el riesgo que quedaba: **la aplicación exige iniciar sesión**
 - ~~Autenticación en las Server Actions (H-17).~~ ✅ Hecho en la fase 3.
 
 ### 2. Importantes
-- Relacionar jugadores con equipos (H-31).
-- Decidir la regla del dorsal y aplicarla (H-07).
+- ~~Relacionar jugadores con equipos (H-31).~~ ✅ Hecho en la fase 6.
+- ~~Decidir la regla del dorsal y aplicarla (H-07).~~ ✅ Hecho en la fase 6.
 - ~~Llevar las pruebas de extremo a extremo al repositorio y añadir pruebas unitarias.~~ ✅ Hecho en la fase 2.
 - ~~`CHECK` de fecha de nacimiento en la base de datos (H-06).~~ ✅ Hecho en la fase 3.
 - Límite de intentos de inicio de sesión compartido entre instancias (ahora vive en la memoria del proceso).
@@ -318,22 +325,23 @@ La fase 3 cerró el riesgo que quedaba: **la aplicación exige iniciar sesión**
 ### 3. Experiencia y accesibilidad
 - Contraste en modo oscuro (H-22).
 - Tabla en móvil (H-26).
-- Secciones Equipos y Partidos o aviso «Próximamente» (H-08).
+- ~~Secciones Equipos y Partidos o aviso «Próximamente» (H-08).~~ ✅ Hecho en la fase 6.
 - Búsqueda por nombre.
 
 ### 4. Rendimiento
-- Nada urgente. Revisar el CSS completo de HeroUI (H-30) e índices de FK al llegar a las estadísticas (H-35).
+- Nada urgente. Revisar el CSS completo de HeroUI (H-30). Los índices de FK (H-35) se añadieron en la fase 6.
 
 ### 5. Nuevas funcionalidades
 
 | Funcionalidad | Problema / valor | Datos | Cambios técnicos | Dificultad | Prioridad |
 |---|---|---|---|---|---|
 | Búsqueda por nombre | Encontrar un jugador sin paginar | `jugadores` | Input y filtro en cliente | Baja | **Alta** |
-| Módulo Equipos | La navegación ya lo promete | `equipos` + `equipo_id` (H-31) | Rutas, lista y detalle; plantilla por equipo | Media | **Alta** |
-| Partidos y resultados | La navegación ya lo promete | `partidos`, `equipos` | Rutas y lista por fase; marcador desde `goles` (H-32) | Media | Alta |
-| Goleadores | Valor inmediato con datos existentes | `goles` → `jugadores` | Consulta agregada con Prisma (`groupBy`) | Media | Media |
-| Tabla de posiciones | Seguir el torneo | `partidos` | Vista SQL en lugar de la tabla manual (H-33) | Media | Media |
-| Estadísticas en el perfil | Enriquecer el perfil | `goles`, `partidos` | Sección nueva en `src/app/jugadores/[id]/page.tsx` | Media | Media |
+| Módulo Equipos | La navegación ya lo promete | `equipos` + `equipo_id` (H-31) | Rutas, lista y detalle; plantilla por equipo | Media | ✅ Hecho (fase 6) |
+| Partidos y resultados | La navegación ya lo promete | `partidos`, `equipos` | Rutas y lista por fase; marcador desde `goles` (H-32) | Media | ✅ Hecho (fase 6) |
+| Goleadores | Valor inmediato con datos existentes | `goles` → `jugadores` | Consulta agregada con Prisma (`groupBy`) | Media | ✅ Hecho (fase 6) |
+| Tabla de posiciones | Seguir el torneo | `partidos` | Vista SQL en lugar de la tabla manual (H-33) | Media | ✅ Hecho (fase 6) |
+| Estadísticas en el perfil | Enriquecer el perfil | `goles`, `partidos` | Sección nueva en `src/app/jugadores/[id]/page.tsx` | Media | ✅ Hecho (fase 6) |
+| Gestión de equipos, partidos y goles | Hoy solo se cargan con el seed o con SQL | `equipos`, `partidos`, `goles` | Formularios y Server Actions (con `errorDePermisoDeEscritura()`); el trigger y las vistas ya protegen la coherencia | Media | Media |
 | Exportar a CSV | Sacar los datos de la app | `jugadores` | Route Handler que devuelva CSV | Baja | Baja |
 
 ### 6. Mejoras futuras (fuera del alcance actual)
@@ -473,25 +481,59 @@ La fase 3 cerró el riesgo que quedaba: **la aplicación exige iniciar sesión**
   - «Próximamente» en las secciones pendientes, si no se implementan antes (H-08).
 - **Criterios de aceptación:** Lighthouse Accessibility ≥ 95 y navegación completa con teclado.
 
-### Fase 6 · Modelo de datos, Equipos, Partidos y estadísticas — Prioridad media
-- **Tareas:**
-  - `equipo_id` en `jugadores` (H-31).
-  - Regla del dorsal (H-07): limpiar duplicados, `UNIQUE(equipo_id, dorsal)` y mensaje del error `P2002`.
-  - Marcador calculado desde `goles` (H-32) y posiciones como vista SQL (H-33).
-  - Unificar tipos de columna (H-34) e índices en las FK (H-35).
-  - Rutas `/equipos` y `/partidos`, goleadores y estadísticas en el perfil.
-- **Dependencias:** fase 3 (completada). Las nuevas Server Actions deben empezar con `errorDePermisoDeEscritura()` y las nuevas consultas con `exigirSesion()`.
-- **Riesgos:**
-  - La restricción `UNIQUE` falla si quedan duplicados.
-  - Las migraciones de datos (asignar equipos, convertir tipos) deben probarse antes en Docker con el seed.
-  - Hay que aplicarlas en Neon con `pnpm db:deploy` en el orden correcto.
+### Fase 6 · Modelo de datos, Equipos, Partidos y estadísticas — ✅ Completada (2026-11-14)
+- **Resuelto:** H-07, H-08, H-31, H-32, H-33, H-34 y H-35.
+- **Modelo de datos** (migración `20261114120000_team_model_and_views`, escrita a mano porque transforma datos):
+  1. `jugadores.equipo_id`, deducido de la nacionalidad de la ficha, y `UNIQUE(equipo_id, dorsal)`.
+  2. `goles.equipo_id` obligatorio (cada gol sube al equipo de su goleador), trigger que exige que el equipo juegue el partido, y `CHECK` del minuto (1-130).
+  3. La diferencia entre el marcador guardado y la tabla `goles` se añade como goles sin goleador; después se eliminan `goles_local` y `goles_visitante`.
+  4. `partidos.jugado` y `CHECK` de equipos distintos.
+  5. `timestamptz` en `equipos.fecha_creacion` y `partidos.fecha`; índices en las FK.
+  6. Vistas `marcadores` y `posiciones_por_grupo` (esta sustituye a la tabla del mismo nombre).
+  - La migración se detiene sin cambiar nada si algún gol es de un jugador que no pertenece a ninguno de los dos equipos del partido.
+  - `prisma/seed.ts` aplica las mismas reglas al cargar el backup en una base vacía.
+- **Aplicación:**
+  - `/equipos`: tabla de posiciones por grupo y listado de selecciones. `/equipos/[id]`: campaña, plantilla y partidos con el resultado de la selección.
+  - `/partidos`: partidos por fase, con marcador y goleadores, y tabla de goleadores.
+  - Perfil del jugador: selección y sección de estadísticas (goles, penales, partidos con gol y detalle de cada gol).
+  - Formulario de jugador: campo «Selección» y mensaje específico para el dorsal repetido (`P2002`) y para una selección que ya no existe (`P2003`).
+  - Navegación y portada enlazan las cuatro secciones.
+- **Archivos:**
+  - Nuevos: `src/lib/torneo.ts` (tipos y utilidades puras), `src/lib/torneo-consultas.ts` (consultas; todas empiezan con `exigirSesion()`), `src/lib/rutas.ts`, `src/app/equipos/`, `src/app/partidos/`, `src/app/torneo.css`, `src/components/torneo/`, la migración.
+  - Modificados: `prisma/schema.prisma`, `prisma/seed.ts`, `src/app/jugadores/` (acciones, consultas, páginas), `src/components/jugadores/`, `src/components/Navbar.tsx`, `src/app/page.tsx`, `src/lib/jugadores.ts`, `src/lib/validacion.ts`, `README.md`.
+  - No se añadieron Server Actions: equipos, partidos y goles son de solo lectura en esta fase.
+- **Pruebas (266 en total: 158 unitarias y de componentes, 108 de integración):**
+
+  | Proyecto | Archivo | Qué cubre |
+  |---|---|---|
+  | `unit` | `torneo.test.ts`, `validacion.test.ts` | Formato de fechas en UTC, desempate, resultado por equipo, texto de goles y marcador; validación de la selección |
+  | `components` | `Torneo.test.tsx`, `Navegacion.test.tsx`, `PlayerFormModal.test.tsx`, `PlayersTable.test.tsx` | Tabla de posiciones, tarjeta de partido (0-0 frente a «Por jugar», goles sin goleador), enlaces a las cuatro secciones, campo «Selección» |
+  | `integration` | `torneo.test.ts` | Marcador y posiciones calculados por las vistas (y su actualización al registrar un gol), equipos, goleadores, estadísticas, `UNIQUE(equipo_id, dorsal)`, trigger del gol, `CHECK` nuevos, índices, consultas sin sesión y con el rol `demo` |
+  | `integration` | `jugadores-actions.test.ts` | Alta y edición con selección, dorsal repetido en la misma selección (rechazado, base sin cambios) y en selecciones distintas (permitido), selección inexistente o inválida |
+
+- **Ensayo de la migración** (PostgreSQL 17 en un contenedor temporal, sin tocar la base de desarrollo ni Neon):
+  - Sobre una copia con el esquema anterior y los datos del backup: 10 de 12 jugadores con selección, los 10 marcadores idénticos a los guardados, 27 goles (10 con goleador y 17 sin él).
+  - Sobre una base vacía con `pnpm db:deploy` y `pnpm db:seed`: el resultado es **idéntico fila a fila** al de la copia migrada (jugadores, goles, marcadores, posiciones y partidos). El seed es idempotente (segunda ejecución: 0 filas nuevas).
+- **Verificación de extremo a extremo** (`next start` y peticiones HTTP contra la base con el seed):
+  - Sin sesión: `/equipos`, `/equipos/1` y `/partidos` responden 307 a `/login`.
+  - Rol demo: todas las páginas responden 200 con los datos esperados (posiciones, plantilla, marcadores, goleadores, estadísticas de un jugador); `crearJugador` se rechaza.
+  - Administrador: dorsal 10 en Argentina, rechazado con el mensaje del dorsal; dorsal 10 sin selección y dorsal 55 en Argentina, aceptados; selección inexistente, rechazada. La plantilla de `/equipos/1` muestra al jugador nuevo.
+  - Al cambiar un gol con SQL, la tabla de posiciones cambia sin tocar nada más.
+- **Pendiente de despliegue:** la migración **no se ha aplicado** ni en la base local de desarrollo ni en Neon.
+  - Local: `pnpm db:deploy` (o `pnpm db:migrate`).
+  - Neon: `pnpm db:deploy` **antes** de desplegar el código. El código nuevo no funciona con el esquema anterior, ni el anterior con el esquema nuevo: habrá unos minutos de errores entre ambos pasos. Conviene hacer antes una copia (rama de Neon).
+- **Limitaciones conocidas:**
+  - Las páginas nuevas no se han revisado visualmente en un navegador (ni con Lighthouse).
+  - `/equipos/999` muestra la página «no encontrada» pero responde 200, porque la ruta transmite la respuesta por partes (`loading.tsx`).
+  - Los 17 goles tomados del marcador antiguo no tienen goleador ni minuto.
+  - Este documento no registra la fase 5: los estados de H-22 y H-26 siguen como estaban.
 
 ---
 
 ## F. Evaluación final (estado actual)
 
 **1. ¿Qué tan cerca está de un producto profesional?**
-Aproximadamente al 75 % (40 % al inicio, 60 % tras la migración, 65 % tras la fase 2). La arquitectura, la calidad del código, la mantenibilidad, la base de pruebas y el control de acceso ya están a nivel profesional. Falta un modelo de datos coherente para crecer.
+Aproximadamente al 85 % (40 % al inicio, 60 % tras la migración, 65 % tras la fase 2). La arquitectura, la calidad del código, la mantenibilidad, la base de pruebas y el control de acceso ya están a nivel profesional. El modelo de datos ya es coherente (fase 6); falta poder gestionar equipos, partidos y goles desde la aplicación y probar en un navegador real.
 
 **2. Los cinco problemas más importantes**
 1. Jugadores sin equipo (H-31).

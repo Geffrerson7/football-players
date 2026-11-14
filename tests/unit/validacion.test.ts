@@ -20,7 +20,26 @@ afterEach(() => vi.useRealTimers());
 
 describe("jugadorSchema", () => {
   it("acepta un jugador válido y convierte el dorsal a número", () => {
-    expect(jugadorSchema.parse(valido)).toEqual({ ...valido, dorsal: 19 });
+    expect(jugadorSchema.parse(valido)).toEqual({ ...valido, dorsal: 19, equipoId: null });
+  });
+
+  describe("equipoId (selección, opcional)", () => {
+    it.each(["", "ninguna", undefined])("%j significa «sin selección»", (equipoId) => {
+      expect(jugadorSchema.parse({ ...valido, equipoId }).equipoId).toBeNull();
+    });
+
+    it("convierte el id de la selección a número", () => {
+      expect(jugadorSchema.parse({ ...valido, equipoId: "4" }).equipoId).toBe(4);
+    });
+
+    it.each(["0", "-1", "1.5", "abc", "2147483648", "4; DROP TABLE equipos"])(
+      "rechaza %j",
+      (equipoId) => {
+        expect(errores({ ...valido, equipoId })).toEqual({
+          equipoId: "Elige una selección válida.",
+        });
+      },
+    );
   });
 
   it("recorta los espacios del nombre", () => {

@@ -10,9 +10,8 @@ import { ThemeSwitcher } from "./ThemeSwitcher";
 const navegacion = [
   { label: "Inicio", href: "/", exacto: true },
   { label: "Jugadores", href: "/jugadores" },
-  // Secciones aún sin implementar (H-08): se anuncian, pero no enlazan a un 404.
-  { label: "Equipos", href: "/equipos", pendiente: true },
-  { label: "Partidos", href: "/partidos", pendiente: true },
+  { label: "Equipos", href: "/equipos" },
+  { label: "Partidos", href: "/partidos" },
 ];
 
 type Props = {
@@ -42,20 +41,7 @@ export default function Navbar({ usuario }: Props) {
         <div className="flex flex-wrap items-center gap-4 sm:gap-6">
           {usuario && (
             <nav aria-label="Navegación principal" className="flex flex-wrap items-center gap-4 sm:gap-6">
-              {navegacion.map(({ label, href, exacto, pendiente }) => {
-                if (pendiente) {
-                  return (
-                    <span
-                      key={href}
-                      className="flex items-center gap-1.5 text-sm font-semibold text-(--pl-muted)"
-                    >
-                      {label}
-                      <span className="rounded border border-dashed border-(--pl-line-strong) px-1.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wider">
-                        Próximamente
-                      </span>
-                    </span>
-                  );
-                }
+              {navegacion.map(({ label, href, exacto }) => {
                 const activo = exacto ? pathname === href : pathname.startsWith(href);
                 return (
                   <Link

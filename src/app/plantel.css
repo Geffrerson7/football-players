@@ -272,7 +272,7 @@
 /* Entre 640 px y el ancho completo, la tabla se desplaza en horizontal.
    Por debajo de 640 px se sustituye por tarjetas (H-26). */
 .pl-table [role="grid"] {
-  min-width: 850px;
+  min-width: 960px;
 }
 
 /* ---------- Tarjetas de jugador (móvil) ---------- */

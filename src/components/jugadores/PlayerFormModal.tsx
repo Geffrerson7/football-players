@@ -20,8 +20,10 @@ import {
   DORSAL_MIN,
   FECHA_MINIMA,
   POSICIONES,
+  SIN_EQUIPO,
   hoyISO,
   type JugadorDTO,
+  type OpcionEquipo,
 } from "@/lib/jugadores";
 import type { CampoJugador } from "@/lib/validacion";
 
@@ -31,6 +33,8 @@ const claseCampo = "flex w-full flex-col gap-1.5";
 type Props = {
   /** null = registrar un jugador nuevo; un jugador = editarlo. */
   jugador: JugadorDTO | null;
+  /** Selecciones entre las que elegir. */
+  equipos: OpcionEquipo[];
   isOpen: boolean;
   onOpenChange: (abierto: boolean) => void;
   onGuardado?: (jugador: JugadorDTO, esNuevo: boolean) => void;
@@ -51,7 +55,13 @@ function validarFecha(valor: string) {
   return null;
 }
 
-export default function PlayerFormModal({ jugador, isOpen, onOpenChange, onGuardado }: Props) {
+export default function PlayerFormModal({
+  jugador,
+  equipos,
+  isOpen,
+  onOpenChange,
+  onGuardado,
+}: Props) {
   const esNuevo = jugador === null;
   const [guardando, iniciarGuardado] = useTransition();
   const [erroresServidor, setErroresServidor] = useState<Partial<Record<CampoJugador, string>>>(
@@ -110,7 +120,7 @@ export default function PlayerFormModal({ jugador, isOpen, onOpenChange, onGuard
             </Modal.Heading>
             <p className="mt-2 text-sm text-(--pl-muted)">
               {esNuevo
-                ? "Completa los cuatro datos para sumarlo al plantel."
+                ? "Completa los datos para sumarlo al plantel."
                 : "Modifica los datos del jugador seleccionado."}
             </p>
           </Modal.Header>
@@ -158,6 +168,41 @@ export default function PlayerFormModal({ jugador, isOpen, onOpenChange, onGuard
                     {POSICIONES.map((posicion) => (
                       <ListBox.Item key={posicion} id={posicion} textValue={posicion}>
                         {posicion}
+                        <ListBox.ItemIndicator />
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </Select.Popover>
+
+                <FieldError />
+              </Select>
+
+              <Select
+                name="equipoId"
+                defaultValue={jugador?.equipo ? String(jugador.equipo.id) : SIN_EQUIPO}
+                variant="primary"
+                className={claseCampo}
+              >
+                <Label className={claseLabel}>Selección</Label>
+
+                <Select.Trigger className="w-full">
+                  <Select.Value />
+                  <Select.Indicator />
+                </Select.Trigger>
+
+                <Select.Popover>
+                  <ListBox>
+                    <ListBox.Item id={SIN_EQUIPO} textValue="Sin selección">
+                      Sin selección
+                      <ListBox.ItemIndicator />
+                    </ListBox.Item>
+                    {equipos.map((equipo) => (
+                      <ListBox.Item
+                        key={equipo.id}
+                        id={String(equipo.id)}
+                        textValue={equipo.nombre}
+                      >
+                        {equipo.nombre}
                         <ListBox.ItemIndicator />
                       </ListBox.Item>
                     ))}
