@@ -18,18 +18,18 @@ export function EstadoVacio({ onRegistrar }: { onRegistrar: () => void }) {
 }
 
 export function EstadoError({
+  titulo = "No pudimos cargar el plantel.",
   mensaje,
   onReintentar,
 }: {
+  titulo?: string;
   mensaje?: string;
   onReintentar: () => void;
 }) {
   return (
     <section role="alert" className="pl-state pl-state-error">
       <span className="pl-state-kicker">ERROR DE CONEXIÓN</span>
-      <h3 className="pl-display text-4xl font-extrabold sm:text-5xl">
-        No pudimos cargar el plantel.
-      </h3>
+      <h3 className="pl-display text-4xl font-extrabold sm:text-5xl">{titulo}</h3>
       <p className="max-w-lg text-(--pl-muted)">
         {mensaje ||
           "Comprueba tu conexión e inténtalo nuevamente. Tus jugadores no se han eliminado."}
@@ -70,7 +70,13 @@ export function EstadoSinResultados({
   );
 }
 
-export function CargandoPlantel() {
+export function CargandoPlantel({
+  titulo = "Plantel",
+  mensaje = "Convocando jugadores...",
+}: {
+  titulo?: string;
+  mensaje?: string;
+}) {
   return (
     <div
       role="status"
@@ -79,8 +85,8 @@ export function CargandoPlantel() {
       <Spinner className="text-success" size="lg" />
 
       <div>
-        <p className="text-sm font-bold tracking-wide text-(--pl-ink)">Plantel</p>
-        <p className="text-xs text-(--pl-muted)">Convocando jugadores...</p>
+        <p className="text-sm font-bold tracking-wide text-(--pl-ink)">{titulo}</p>
+        <p className="text-xs text-(--pl-muted)">{mensaje}</p>
       </div>
 
       <span className="ml-auto text-lg" aria-hidden="true">

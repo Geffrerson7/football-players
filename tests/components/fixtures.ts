@@ -9,6 +9,7 @@ export function jugador(datos: Partial<JugadorDTO> & { id: number }): JugadorDTO
     dorsal: datos.id,
     activo: true,
     fechaNacimiento: "2000-01-01",
+    equipo: null,
     ...datos,
   };
 }

@@ -2,7 +2,7 @@
 
 import { Button, Label, SearchField } from "@heroui/react";
 import { useMemo, useState } from "react";
-import { coincideNombre, type JugadorDTO } from "@/lib/jugadores";
+import { coincideNombre, type JugadorDTO, type OpcionEquipo } from "@/lib/jugadores";
 import DeletePlayerModal from "./DeletePlayerModal";
 import { EstadoSinResultados, EstadoVacio } from "./EstadosPlantel";
 import PlayerFormModal from "./PlayerFormModal";
@@ -10,7 +10,13 @@ import PlayersTable from "./PlayersTable";
 
 const TODOS = "todos";
 
-export default function PlayersView({ jugadores }: { jugadores: JugadorDTO[] }) {
+type Props = {
+  jugadores: JugadorDTO[];
+  /** Selecciones disponibles en el formulario. */
+  equipos: OpcionEquipo[];
+};
+
+export default function PlayersView({ jugadores, equipos }: Props) {
   const [filtro, setFiltro] = useState<string>(TODOS);
   const [busqueda, setBusqueda] = useState("");
 
@@ -196,6 +202,7 @@ export default function PlayersView({ jugadores }: { jugadores: JugadorDTO[] }) 
       <PlayerFormModal
         key={aperturaForm}
         jugador={jugadorEditado}
+        equipos={equipos}
         isOpen={formAbierto}
         onOpenChange={setFormAbierto}
         onGuardado={(_jugador, esNuevo) => {

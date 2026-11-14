@@ -6,7 +6,7 @@ import type { JugadorDTO } from "@/lib/jugadores";
 import { prisma } from "@/lib/prisma";
 import { errorDePermisoDeEscritura } from "@/lib/sesion";
 import { jugadorSchema, type CampoJugador } from "@/lib/validacion";
-import { aJugadorDTO } from "./data";
+import { aJugadorDTO, camposJugador } from "./data";
 
 // NOTA DE SEGURIDAD: las Server Actions son endpoints HTTP públicos que se pueden
 // invocar directamente, sin pasar por la interfaz. Por eso cada una comprueba primero
@@ -24,6 +24,7 @@ function leerFormulario(formData: FormData, activoPorDefecto?: boolean) {
     fechaNacimiento: formData.get("fechaNacimiento") ?? "",
     // El Switch solo envía el campo cuando está activado.
     activo: activoPorDefecto ?? formData.has("activo"),
+    equipoId: formData.get("equipoId") ?? "",
   });
 }
 
@@ -46,9 +47,32 @@ function codigoPrisma(error: unknown): string | null {
   return error instanceof Prisma.PrismaClientKnownRequestError ? error.code : null;
 }
 
+/**
+ * Errores de la base de datos que dependen de los datos enviados:
+ * - P2002: la restricción UNIQUE(equipo_id, dorsal). Dos jugadores de una misma
+ *   selección no pueden compartir dorsal (H-07).
+ * - P2003: la selección elegida ya no existe (clave foránea).
+ */
+function errorDeDatos(error: unknown, dorsal: number): ResultadoAccion<never> | null {
+  const codigo = codigoPrisma(error);
+  if (codigo === "P2002") {
+    const mensaje = `El dorsal ${dorsal} ya lo lleva otro jugador de esa selección.`;
+    return { ok: false, error: mensaje, campos: { dorsal: mensaje } };
+  }
+  if (codigo === "P2003") {
+    const mensaje = "La selección elegida ya no existe. Recarga la página y elige otra.";
+    return { ok: false, error: mensaje, campos: { equipoId: mensaje } };
+  }
+  return null;
+}
+
+// Un jugador aparece en el listado, en su perfil, en la plantilla de su selección
+// (/equipos y /equipos/[id]) y entre los goleadores (/partidos).
 function revalidarJugador(id?: number) {
   revalidatePath("/jugadores");
   if (id) revalidatePath(`/jugadores/${id}`);
+  revalidatePath("/equipos", "layout");
+  revalidatePath("/partidos");
 }
 
 export async function crearJugador(formData: FormData): Promise<ResultadoAccion<JugadorDTO>> {
@@ -61,10 +85,13 @@ export async function crearJugador(formData: FormData): Promise<ResultadoAccion<
   try {
     const jugador = await prisma.jugador.create({
       data: { ...datos.data, fechaNacimiento: new Date(`${datos.data.fechaNacimiento}T00:00:00Z`) },
+      select: camposJugador,
     });
     revalidarJugador();
     return { ok: true, datos: aJugadorDTO(jugador) };
   } catch (error) {
+    const deDatos = errorDeDatos(error, datos.data.dorsal);
+    if (deDatos) return deDatos;
     console.error("Error al registrar jugador:", error);
     return { ok: false, error: "No se pudo registrar al jugador. Inténtalo nuevamente." };
   }
@@ -86,6 +113,7 @@ export async function actualizarJugador(
     const jugador = await prisma.jugador.update({
       where: { id },
       data: { ...datos.data, fechaNacimiento: new Date(`${datos.data.fechaNacimiento}T00:00:00Z`) },
+      select: camposJugador,
     });
     revalidarJugador(id);
     return { ok: true, datos: aJugadorDTO(jugador) };
@@ -94,6 +122,8 @@ export async function actualizarJugador(
       revalidarJugador(id);
       return { ok: false, error: "Este jugador ya no existe. Recarga la lista." };
     }
+    const deDatos = errorDeDatos(error, datos.data.dorsal);
+    if (deDatos) return deDatos;
     console.error("Error al actualizar jugador:", error);
     return { ok: false, error: "No se pudo actualizar al jugador. Inténtalo nuevamente." };
   }

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { describe, expect, it, vi } from "vitest";
 import { actualizarJugador, crearJugador } from "@/app/jugadores/actions";
 import PlayerFormModal from "@/components/jugadores/PlayerFormModal";
-import type { JugadorDTO } from "@/lib/jugadores";
+import { SIN_EQUIPO, type JugadorDTO } from "@/lib/jugadores";
 import { MENSAJE_SIN_PERMISOS } from "@/lib/roles";
 import { jugador } from "./fixtures";
 
@@ -24,12 +24,18 @@ const yamal = jugador({
   fechaNacimiento: "2007-07-13",
 });
 
+const EQUIPOS = [
+  { id: 4, nombre: "España" },
+  { id: 6, nombre: "Perú" },
+];
+
 function renderModal(jugadorEditado: JugadorDTO | null) {
   const onOpenChange = vi.fn();
   const onGuardado = vi.fn();
   render(
     <PlayerFormModal
       jugador={jugadorEditado}
+      equipos={EQUIPOS}
       isOpen
       onOpenChange={onOpenChange}
       onGuardado={onGuardado}
@@ -77,6 +83,8 @@ describe("PlayerFormModal en modo creación", () => {
     await user.type(campo("Nombre"), "Pedri");
     await user.click(screen.getByRole("button", { name: /Posición/ }));
     await user.click(await screen.findByRole("option", { name: "Mediocampista" }));
+    await user.click(screen.getByRole("button", { name: /Selección/ }));
+    await user.click(await screen.findByRole("option", { name: "España" }));
     await user.type(dorsal(), "8");
     await user.type(fecha(), "2002-11-25");
     await user.click(screen.getByRole("button", { name: "Registrar jugador" }));
@@ -85,12 +93,61 @@ describe("PlayerFormModal en modo creación", () => {
     expect(ultimoFormData(vi.mocked(crearJugador))).toMatchObject({
       nombre: "Pedri",
       posicion: "Mediocampista",
+      equipoId: "4",
       dorsal: "8",
       fechaNacimiento: "2002-11-25",
     });
     expect(toast.success).toHaveBeenCalledWith("Jugador registrado correctamente", expect.anything());
     expect(onGuardado).toHaveBeenCalledWith(expect.objectContaining({ id: 20 }), true);
     expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+});
+
+describe("PlayerFormModal: selección del jugador (H-31)", () => {
+  it("por defecto, un jugador nuevo no tiene selección", async () => {
+    vi.mocked(crearJugador).mockResolvedValue({ ok: true, datos: jugador({ id: 21 }) });
+    const { user } = renderModal(null);
+
+    expect(screen.getByRole("button", { name: /Selección/ })).toHaveTextContent("Sin selección");
+
+    await user.type(campo("Nombre"), "Pedri");
+    await user.click(screen.getByRole("button", { name: /Posición/ }));
+    await user.click(await screen.findByRole("option", { name: "Mediocampista" }));
+    await user.type(dorsal(), "8");
+    await user.type(fecha(), "2002-11-25");
+    await user.click(screen.getByRole("button", { name: "Registrar jugador" }));
+
+    expect(ultimoFormData(vi.mocked(crearJugador))).toMatchObject({ equipoId: SIN_EQUIPO });
+  });
+
+  it("al editar, muestra la selección actual y permite quitarla", async () => {
+    const conEquipo = { ...yamal, equipo: { id: 4, nombre: "España" } };
+    vi.mocked(actualizarJugador).mockResolvedValue({ ok: true, datos: { ...yamal, equipo: null } });
+    const { user } = renderModal(conEquipo);
+
+    expect(screen.getByRole("button", { name: /Selección/ })).toHaveTextContent("España");
+
+    await user.click(screen.getByRole("button", { name: /Selección/ }));
+    await user.click(await screen.findByRole("option", { name: "Sin selección" }));
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(ultimoFormData(vi.mocked(actualizarJugador))).toMatchObject({ equipoId: SIN_EQUIPO });
+  });
+
+  it("muestra junto al dorsal el error de dorsal repetido que devuelve el servidor (H-07)", async () => {
+    const mensaje = "El dorsal 19 ya lo lleva otro jugador de esa selección.";
+    vi.mocked(actualizarJugador).mockResolvedValue({
+      ok: false,
+      error: mensaje,
+      campos: { dorsal: mensaje },
+    });
+    const { user, onOpenChange } = renderModal(yamal);
+
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    expect(await screen.findByText(mensaje)).toBeInTheDocument();
+    expect(dorsal()).toBeInvalid();
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
 });
 

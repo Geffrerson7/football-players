@@ -7,22 +7,24 @@ vi.mock("next/navigation", () => ({ usePathname: () => "/jugadores" }));
 vi.mock("@/app/login/actions", () => ({ cerrarSesion: vi.fn() }));
 vi.mock("next-themes", () => ({ useTheme: () => ({ theme: "light", setTheme: vi.fn() }) }));
 
-// H-08: Equipos y Partidos aún no existen; no deben enlazar a una página 404.
-describe("secciones pendientes (H-08)", () => {
-  it("la navegación enlaza solo las secciones que existen y marca la actual", () => {
+// H-08: Equipos y Partidos ya existen (fase 6); la navegación y la portada los enlazan.
+describe("navegación a todas las secciones (H-08)", () => {
+  it("la navegación enlaza las cuatro secciones y marca la actual", () => {
     render(<Navbar usuario={{ nombre: "Ana", rol: "admin" }} />);
     const nav = screen.getByRole("navigation", { name: "Navegación principal" });
 
     expect(within(nav).getAllByRole("link").map((a) => a.getAttribute("href"))).toEqual([
       "/",
       "/jugadores",
+      "/equipos",
+      "/partidos",
     ]);
     expect(within(nav).getByRole("link", { name: "Jugadores" })).toHaveAttribute(
       "aria-current",
       "page",
     );
-    expect(within(nav).getByText("Equipos")).toHaveTextContent("Próximamente");
-    expect(within(nav).getByText("Partidos")).toHaveTextContent("Próximamente");
+    expect(within(nav).getByRole("link", { name: "Equipos" })).not.toHaveAttribute("aria-current");
+    expect(within(nav).queryByText("Próximamente")).toBeNull();
   });
 
   it("sin sesión, la cabecera no muestra navegación", () => {
@@ -32,15 +34,16 @@ describe("secciones pendientes (H-08)", () => {
     expect(screen.queryByRole("button", { name: /Cerrar sesión/ })).toBeNull();
   });
 
-  it("la portada solo enlaza a Jugadores y anuncia las otras dos secciones", () => {
+  it("la portada enlaza a Jugadores, Equipos y Partidos", () => {
     render(<Home />);
 
     const enlaces = screen.getAllByRole("link").map((a) => a.getAttribute("href"));
-    expect(enlaces).not.toContain("/equipos");
-    expect(enlaces).not.toContain("/partidos");
-    expect(enlaces).toContain("/jugadores");
-    expect(screen.getAllByText("Próximamente")).toHaveLength(2);
-    expect(screen.getByRole("heading", { name: "Equipos" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Partidos" })).toBeInTheDocument();
+    expect(enlaces).toEqual(expect.arrayContaining(["/jugadores", "/equipos", "/partidos"]));
+    expect(screen.queryByText("Próximamente")).toBeNull();
+    expect(screen.getByRole("link", { name: /Ver equipos/ })).toHaveAttribute("href", "/equipos");
+    expect(screen.getByRole("link", { name: /Explorar partidos/ })).toHaveAttribute(
+      "href",
+      "/partidos",
+    );
   });
 });

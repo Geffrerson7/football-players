@@ -20,6 +20,19 @@ type Props = {
 const claseBotonEditar = "border-blue-500/40 text-blue-700 hover:bg-blue-500/10 dark:text-blue-300";
 const claseBotonEliminar = "border-red-500/40 text-red-700 hover:bg-red-500/10 dark:text-red-300";
 
+/** Enlace a la selección del jugador, o un texto atenuado si no tiene. */
+function Seleccion({ jugador }: { jugador: JugadorDTO }) {
+  if (!jugador.equipo) return <span className="text-sm text-(--pl-muted)">Sin selección</span>;
+  return (
+    <Link
+      href={`/equipos/${jugador.equipo.id}`}
+      className="text-sm font-semibold underline underline-offset-4"
+    >
+      {jugador.equipo.nombre}
+    </Link>
+  );
+}
+
 function textoDisponibilidad(jugador: JugadorDTO) {
   return jugador.activo ? "Disponible para convocatoria" : "Fuera de convocatoria";
 }
@@ -47,6 +60,10 @@ function TarjetaJugador({
       </div>
 
       <div className="pl-card-datos">
+        <span>
+          <span className="sr-only">Selección: </span>
+          <Seleccion jugador={jugador} />
+        </span>
         <span className="inline-flex rounded-md border border-(--pl-line) px-2.5 py-1 text-xs font-bold uppercase tracking-wide">
           {jugador.posicion || "Sin posición"}
         </span>
@@ -128,6 +145,7 @@ export default function PlayersTable({ jugadores, onEditar, onEliminar }: Props)
             <Table.Header>
               <Table.Column isRowHeader>Dorsal</Table.Column>
               <Table.Column>Jugador</Table.Column>
+              <Table.Column>Selección</Table.Column>
               <Table.Column>Posición</Table.Column>
               <Table.Column>Estado</Table.Column>
               <Table.Column>Fecha de nacimiento</Table.Column>
@@ -155,6 +173,10 @@ export default function PlayersTable({ jugadores, onEditar, onEliminar }: Props)
                         {textoDisponibilidad(jugador)}
                       </p>
                     </div>
+                  </Table.Cell>
+
+                  <Table.Cell>
+                    <Seleccion jugador={jugador} />
                   </Table.Cell>
 
                   <Table.Cell>

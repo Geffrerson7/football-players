@@ -36,9 +36,9 @@ vi.mock("next/navigation", () => ({
 const { prisma } = await import("@/lib/prisma");
 const { prepararUsuarios, usarSesion } = await import("./sesion-pruebas");
 
+// `posiciones_por_grupo` y `marcadores` son vistas: no guardan datos.
 const TABLAS = [
   "goles",
-  "posiciones_por_grupo",
   "partidos",
   "detalle_jugadores",
   "jugadores",

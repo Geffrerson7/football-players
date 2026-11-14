@@ -19,7 +19,7 @@ const filtro = (nombre: string) =>
 
 describe("PlayersView", () => {
   it("muestra el total y un filtro por cada posición presente", () => {
-    render(<PlayersView jugadores={plantel(12)} />);
+    render(<PlayersView jugadores={plantel(12)} equipos={[]} />);
 
     // Texto exacto de la banda (el contador de la tabla dice «… de 12 jugadores»).
     expect(screen.getByText("12 jugadores")).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe("PlayersView", () => {
 
   it("filtra por posición y marca el filtro activo (H-01)", async () => {
     const user = userEvent.setup();
-    render(<PlayersView jugadores={plantel(12)} />);
+    render(<PlayersView jugadores={plantel(12)} equipos={[]} />);
 
     await user.click(filtro("Defensa"));
 
@@ -49,7 +49,7 @@ describe("PlayersView", () => {
 
   it("vuelve a la primera página al cambiar de filtro (H-03)", async () => {
     const user = userEvent.setup();
-    render(<PlayersView jugadores={plantel(30)} />);
+    render(<PlayersView jugadores={plantel(30)} equipos={[]} />);
 
     await user.click(screen.getByRole("button", { name: "Siguiente" }));
     await user.click(screen.getByRole("button", { name: "Siguiente" }));
@@ -61,7 +61,7 @@ describe("PlayersView", () => {
   });
 
   it("muestra el estado vacío cuando no hay jugadores", () => {
-    render(<PlayersView jugadores={[]} />);
+    render(<PlayersView jugadores={[]} equipos={[]} />);
 
     expect(screen.getByText("El plantel está vacío.")).toBeInTheDocument();
     expect(screen.queryByRole("group", { name: "Filtrar jugadores por posición" })).toBeNull();
@@ -79,7 +79,7 @@ describe("PlayersView", () => {
 
     it("filtra mientras se escribe, sin distinguir mayúsculas ni tildes", async () => {
       const user = userEvent.setup();
-      render(<PlayersView jugadores={jugadores} />);
+      render(<PlayersView jugadores={jugadores} equipos={[]} />);
 
       await user.type(buscador(), "MARIA");
 
@@ -91,7 +91,7 @@ describe("PlayersView", () => {
 
     it("se combina con el filtro por posición", async () => {
       const user = userEvent.setup();
-      render(<PlayersView jugadores={jugadores} />);
+      render(<PlayersView jugadores={jugadores} equipos={[]} />);
 
       await user.type(buscador(), "mar");
       expect(nombresVisibles()).toEqual(["Ángel Di María", "Emiliano Martínez"]);
@@ -103,7 +103,7 @@ describe("PlayersView", () => {
 
     it("sin coincidencias muestra el texto buscado y permite quitar los filtros", async () => {
       const user = userEvent.setup();
-      render(<PlayersView jugadores={jugadores} />);
+      render(<PlayersView jugadores={jugadores} equipos={[]} />);
 
       await user.click(filtro("Portero"));
       await user.type(buscador(), "ronaldo");
@@ -120,7 +120,7 @@ describe("PlayersView", () => {
 
     it("el botón de borrar vacía la búsqueda", async () => {
       const user = userEvent.setup();
-      render(<PlayersView jugadores={jugadores} />);
+      render(<PlayersView jugadores={jugadores} equipos={[]} />);
 
       await user.type(buscador(), "messi");
       await user.click(screen.getByRole("button", { name: "Borrar la búsqueda" }));
@@ -131,7 +131,7 @@ describe("PlayersView", () => {
 
     it("vuelve a la primera página al buscar", async () => {
       const user = userEvent.setup();
-      render(<PlayersView jugadores={plantel(30)} />);
+      render(<PlayersView jugadores={plantel(30)} equipos={[]} />);
 
       await user.click(screen.getByRole("button", { name: "Siguiente" }));
       expect(screen.getByText("2 / 3")).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe("PlayersView", () => {
     });
 
     it("no se muestra si el plantel está vacío", () => {
-      render(<PlayersView jugadores={[]} />);
+      render(<PlayersView jugadores={[]} equipos={[]} />);
 
       expect(screen.queryByRole("searchbox")).toBeNull();
     });
@@ -152,7 +152,7 @@ describe("PlayersView", () => {
 
   it("al cancelar una edición se descartan los cambios (H-04)", async () => {
     const user = userEvent.setup();
-    render(<PlayersView jugadores={[jugador({ id: 4, nombre: "Lamine Yamal" })]} />);
+    render(<PlayersView jugadores={[jugador({ id: 4, nombre: "Lamine Yamal" })]} equipos={[]} />);
 
     await user.click(screen.getByRole("button", { name: "Editar a Lamine Yamal" }));
     const nombre = await screen.findByRole("textbox", { name: "Nombre" });

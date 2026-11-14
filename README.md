@@ -9,12 +9,14 @@ Aplicación de gestión de jugadores de fútbol construida con **Next.js (App Ro
 
 - **Inicio de sesión obligatorio** con dos roles: `admin` (gestiona el plantel) y `demo` (solo lectura, con acceso desde el botón «Entrar como demo»).
 - **Plantel:** listado de jugadores ordenado por dorsal, con búsqueda por nombre (sin distinguir mayúsculas ni tildes), filtro por posición y paginación. En pantallas de menos de 640 px, la tabla se muestra como tarjetas.
-- **Gestión de jugadores:** registrar, editar (incluido el estado activo/inactivo) y eliminar.
-- **Perfil del jugador:** ficha deportiva, edad calculada y biografía.
+- **Gestión de jugadores:** registrar, editar (incluidos la selección y el estado activo/inactivo) y eliminar. El dorsal es único dentro de cada selección.
+- **Perfil del jugador:** ficha deportiva, selección, edad calculada, biografía y estadísticas (goles, penales y detalle de cada gol).
+- **Equipos:** tabla de posiciones por grupo y listado de selecciones; cada selección tiene su página con campaña, plantilla y partidos.
+- **Partidos:** calendario y resultados por fase, con goleadores, y tabla de máximos goleadores.
 - **Tema claro / oscuro / sistema.**
 - **Página 404 personalizada.**
 
-> Las secciones **Equipos** y **Partidos** todavía no están implementadas: aparecen en la navegación y en la portada con el aviso «Próximamente», sin enlace. Los datos (`equipos`, `partidos`, `goles`, `posiciones_por_grupo`) ya existen en la base de datos.
+> Equipos, partidos y goles son de **solo lectura**: se cargan con el seed. El marcador y la tabla de posiciones no se guardan: se calculan en la base de datos a partir de los goles (vistas SQL `marcadores` y `posiciones_por_grupo`).
 
 ## Stack
 
@@ -64,7 +66,9 @@ Abre la URL que muestra Next.js (por defecto `http://localhost:3000`).
 
 ### Datos iniciales
 
-`prisma/seed.ts` carga los datos migrados desde el backup de Supabase del 29-10-2026 (12 jugadores, 11 fichas, 10 equipos, 10 partidos, 10 goles y 10 posiciones) a partir de `prisma/seed-data.json`.
+`prisma/seed.ts` carga los datos migrados desde el backup de Supabase del 29-10-2026 (12 jugadores, 11 fichas, 10 equipos, 10 partidos y 10 goles) a partir de `prisma/seed-data.json`.
+
+El backup tiene el modelo de datos original, así que el seed lo adapta al actual: asigna a cada jugador su selección según la nacionalidad de su ficha, asigna cada gol al equipo de su goleador y añade, sin goleador, los goles que solo constaban en el marcador de cada partido (17). Las posiciones del backup no se cargan: ahora se calculan.
 
 **`prisma/seed-data.json` no está en el repositorio.** Para cargar los datos, coloca ese archivo en `prisma/` antes de ejecutar `pnpm db:seed`; sin él, el seed se detiene con un mensaje explicativo y la base queda vacía.
 
@@ -139,9 +143,9 @@ Las pruebas usan [Vitest](https://vitest.dev) y Testing Library, organizadas en 
 
 | Proyecto | Carpeta | Entorno | Qué cubre |
 |---|---|---|---|
-| `unit` | `tests/unit/` | Node | Utilidades de fechas y edad, reglas de validación (zod) |
-| `components` | `tests/components/` | jsdom | Tabla y paginación, filtros, formulario de jugador, modal de eliminación, inicio de sesión, mensaje de falta de permisos |
-| `integration` | `tests/integration/` | Node + PostgreSQL | Server Actions y consultas contra una base de datos real; control de acceso por rol, inicio y cierre de sesión, redirección al login |
+| `unit` | `tests/unit/` | Node | Utilidades de fechas y edad, reglas de validación (zod), utilidades del torneo (desempate, resultados, formato) |
+| `components` | `tests/components/` | jsdom | Tabla y paginación, filtros, formulario de jugador, modal de eliminación, inicio de sesión, mensaje de falta de permisos, tabla de posiciones y tarjeta de partido |
+| `integration` | `tests/integration/` | Node + PostgreSQL | Server Actions y consultas contra una base de datos real; control de acceso por rol, inicio y cierre de sesión, redirección al login; vistas SQL (marcador y posiciones), regla del dorsal y demás restricciones |
 
 Las pruebas de integración crean usuarios `admin` y `demo` en la base de pruebas e inician sesiones reales de Better Auth; no usan `BETTER_AUTH_SECRET` ni las credenciales del `.env`.
 
@@ -182,6 +186,8 @@ Si `TEST_DATABASE_URL` no está definida, `pnpm test` ejecuta solo las pruebas u
    ```
 
 > **Orden importante:** aplica las migraciones (`pnpm db:deploy`) **antes** de desplegar una versión nueva del código. La aplicación consulta la tabla de sesiones en cada petición; sin ella, todas las páginas fallan.
+>
+> La migración `team_model_and_views` **transforma datos y elimina columnas** (el marcador guardado en `partidos` y la tabla `posiciones_por_grupo`, que pasan a calcularse). Haz antes una copia de la base (en Neon, una rama) y despliega el código justo después: la versión anterior de la aplicación no funciona con el esquema nuevo.
 
 `prisma.config.ts` usa `DIRECT_URL` para la CLI cuando existe y, si no, `DATABASE_URL`.
 
@@ -190,7 +196,7 @@ Si `TEST_DATABASE_URL` no está definida, `pnpm test` ejecuta solo las pruebas u
 ```text
 prisma/
 ├── schema.prisma          # Modelos (mapeados a las tablas originales)
-├── migrations/            # Migraciones (incluyen las restricciones CHECK)
+├── migrations/            # Migraciones (incluyen CHECK, un trigger y las vistas SQL)
 ├── seed.ts                # Seed idempotente
 ├── usuarios.ts            # Alta de los usuarios administrador y demo
 └── seed-data.json         # Datos migrados desde Supabase (local, no versionado)
@@ -201,13 +207,16 @@ src/
 │   ├── login/             # Inicio de sesión (page) y sus Server Actions
 │   ├── page.tsx           # Portada
 │   ├── not-found.tsx      # 404
+│   ├── equipos/           # Posiciones y selecciones (page) y detalle ([id])
+│   ├── partidos/          # Partidos por fase y goleadores
 │   └── jugadores/
 │       ├── (lista)/       # Listado (page, loading, error)
 │       ├── [id]/          # Perfil del jugador
 │       ├── actions.ts     # Server Actions: crear, editar, eliminar
 │       └── data.ts        # Consultas (solo servidor)
-├── components/            # Navbar, Footer, ThemeSwitcher, jugadores/*
-├── lib/                   # Prisma, Better Auth, sesión y roles, dominio y validación
+├── components/            # Navbar, Footer, ThemeSwitcher, jugadores/*, torneo/*
+├── lib/                   # Prisma, Better Auth, sesión y roles, dominio y validación,
+│                          # torneo (tipos y utilidades) y torneo-consultas (solo servidor)
 └── generated/prisma/      # Cliente de Prisma generado (no se versiona)
 tests/
 ├── unit/                  # Lógica pura (Node)
@@ -226,7 +235,7 @@ vitest.config.ts           # Configuración de las pruebas
 - Las contraseñas se guardan con hash (scrypt). Las cookies de sesión son `HttpOnly`, están firmadas y, con HTTPS, son `Secure`.
 - Las credenciales demo solo existen en variables de entorno del servidor: no están en el repositorio, en el bundle del cliente ni en los logs.
 - No se expone la API HTTP de Better Auth (`/api/auth/*`) ni existe registro público: el inicio y el cierre de sesión son Server Actions.
-- Las restricciones `CHECK` de la base de datos (dorsal 1-99, fecha de nacimiento, rol) repiten las reglas de la aplicación.
+- Las restricciones de la base de datos repiten las reglas de la aplicación: `CHECK` (dorsal 1-99, fecha de nacimiento, rol, minuto del gol, equipos distintos en un partido), `UNIQUE(equipo_id, dorsal)` y un trigger que exige que el equipo de un gol juegue ese partido.
 - Nunca subas `.env` ni los backups de la base de datos al repositorio (ambos están en `.gitignore`).
 
 ## Contribuir
