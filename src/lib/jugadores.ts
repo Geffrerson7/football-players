@@ -82,3 +82,22 @@ export function iniciales(nombre: string): string {
     .join("")
     .toUpperCase();
 }
+
+/** Minúsculas y sin tildes ni diéresis, para comparar textos: "Agüero" → "aguero". */
+export function normalizarTexto(texto: string): string {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Búsqueda por nombre: ignora mayúsculas y tildes, y exige que aparezcan todas las
+ * palabras buscadas, en cualquier orden ("messi lio" encuentra "Lionel Messi").
+ */
+export function coincideNombre(nombre: string, busqueda: string): boolean {
+  const palabras = normalizarTexto(busqueda).split(/\s+/).filter(Boolean);
+  const normalizado = normalizarTexto(nombre);
+  return palabras.every((palabra) => normalizado.includes(palabra));
+}

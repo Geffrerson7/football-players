@@ -5,7 +5,7 @@ export default function Footer() {
   return (
     <footer className="fp-home-footer">
       <div className="fp-footer-inner">
-        <Link href="/" className="fp-footer-brand" aria-label="Football Players, inicio">
+        <Link href="/" className="fp-footer-brand">
           <span className="fp-footer-logo">FP</span>
 
           <span className="fp-footer-brand-text">

@@ -8,13 +8,13 @@ Aplicación de gestión de jugadores de fútbol construida con **Next.js (App Ro
 ## Funcionalidades
 
 - **Inicio de sesión obligatorio** con dos roles: `admin` (gestiona el plantel) y `demo` (solo lectura, con acceso desde el botón «Entrar como demo»).
-- **Plantel:** listado de jugadores ordenado por dorsal, con filtro por posición y paginación.
+- **Plantel:** listado de jugadores ordenado por dorsal, con búsqueda por nombre (sin distinguir mayúsculas ni tildes), filtro por posición y paginación. En pantallas de menos de 640 px, la tabla se muestra como tarjetas.
 - **Gestión de jugadores:** registrar, editar (incluido el estado activo/inactivo) y eliminar.
 - **Perfil del jugador:** ficha deportiva, edad calculada y biografía.
 - **Tema claro / oscuro / sistema.**
 - **Página 404 personalizada.**
 
-> Las secciones **Equipos** y **Partidos** aparecen en la navegación, pero todavía no están implementadas. Los datos (`equipos`, `partidos`, `goles`, `posiciones_por_grupo`) ya existen en la base de datos.
+> Las secciones **Equipos** y **Partidos** todavía no están implementadas: aparecen en la navegación y en la portada con el aviso «Próximamente», sin enlace. Los datos (`equipos`, `partidos`, `goles`, `posiciones_por_grupo`) ya existen en la base de datos.
 
 ## Stack
 

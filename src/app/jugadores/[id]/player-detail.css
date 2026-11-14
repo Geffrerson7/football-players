@@ -72,7 +72,9 @@
   line-height: 0.9;
   color: transparent;
   -webkit-text-stroke: 2px white;
-  text-shadow: 0 2px 15px rgb(0 0 0 / 15%);
+  /* Misma sombra que antes, como filtro: con text-shadow, las herramientas de
+     accesibilidad miden el contraste de la sombra de un numeral que solo tiene contorno. */
+  filter: drop-shadow(0 2px 15px rgb(0 0 0 / 15%));
 }
 
 .pl-detail-intro {
@@ -143,8 +145,8 @@
 }
 
 .pl-detail-back:hover {
-  background: var(--pl-sash);
-  border-color: var(--pl-sash);
+  background: var(--pl-sash-fill);
+  border-color: var(--pl-sash-fill);
   color: white;
 }
 

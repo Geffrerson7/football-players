@@ -57,7 +57,7 @@ export default function DeletePlayerModal({ jugador, isOpen, onOpenChange }: Pro
           <Modal.CloseTrigger />
 
           <Modal.Header className="flex flex-col items-start gap-2 border-b border-(--pl-line) px-5 py-4">
-            <span className="text-xs font-extrabold uppercase tracking-[0.18em] text-(--pl-sash)">
+            <span className="text-xs font-extrabold uppercase tracking-[0.18em] text-(--pl-sash-text)">
               Football Players · Plantel
             </span>
 
@@ -70,7 +70,7 @@ export default function DeletePlayerModal({ jugador, isOpen, onOpenChange }: Pro
             <div className="flex items-start gap-3">
               <span
                 aria-hidden="true"
-                className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-(--pl-sash)/10 text-xl text-(--pl-sash)"
+                className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-(--pl-sash)/10 text-xl text-(--pl-sash-text)"
               >
                 !
               </span>
@@ -98,7 +98,7 @@ export default function DeletePlayerModal({ jugador, isOpen, onOpenChange }: Pro
             {error && (
               <p
                 role="alert"
-                className="rounded-lg border border-(--pl-sash)/40 bg-(--pl-sash)/10 px-3 py-2 text-sm text-(--pl-sash)"
+                className="rounded-lg border border-(--pl-sash)/40 bg-(--pl-sash)/10 px-3 py-2 text-sm text-(--pl-sash-text)"
               >
                 {error}
               </p>
@@ -119,7 +119,7 @@ export default function DeletePlayerModal({ jugador, isOpen, onOpenChange }: Pro
               onPress={handleEliminar}
               isDisabled={!jugador}
               isPending={eliminando}
-              className="bg-(--pl-sash) font-bold text-white transition-opacity hover:opacity-90"
+              className="bg-(--pl-sash-fill) font-bold text-white transition-opacity hover:opacity-90"
             >
               {eliminando ? "Eliminando..." : "Sí, eliminar"}
             </Button>

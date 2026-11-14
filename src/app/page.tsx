@@ -1,7 +1,14 @@
 import Link from "next/link";
 import "./home.css";
 
-const secciones = [
+// href: null = sección aún sin implementar (H-08): se muestra «Próximamente» en lugar del enlace.
+const secciones: {
+  numero: string;
+  titulo: string;
+  descripcion: string;
+  href: string | null;
+  accion: string;
+}[] = [
   {
     numero: "01",
     titulo: "Jugadores",
@@ -14,14 +21,14 @@ const secciones = [
     numero: "02",
     titulo: "Equipos",
     descripcion: "Organiza las selecciones, sus confederaciones y sus grupos.",
-    href: "/equipos",
+    href: null,
     accion: "Ver equipos",
   },
   {
     numero: "03",
     titulo: "Partidos",
     descripcion: "Consulta los enfrentamientos, resultados y las distintas fases del torneo.",
-    href: "/partidos",
+    href: null,
     accion: "Explorar partidos",
   },
 ];
@@ -93,10 +100,16 @@ export default function Home() {
               <h3>{seccion.titulo}</h3>
               <p>{seccion.descripcion}</p>
 
-              <Link href={seccion.href} className="fp-home-card-link">
-                {seccion.accion}
-                <span aria-hidden="true"> →</span>
-              </Link>
+              {seccion.href ? (
+                <Link href={seccion.href} className="fp-home-card-link">
+                  {seccion.accion}
+                  <span aria-hidden="true"> →</span>
+                </Link>
+              ) : (
+                <p className="fp-home-card-pendiente">
+                  <span>Próximamente</span>
+                </p>
+              )}
             </article>
           ))}
         </div>

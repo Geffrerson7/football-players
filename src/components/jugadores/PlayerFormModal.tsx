@@ -231,7 +231,7 @@ export default function PlayerFormModal({ jugador, isOpen, onOpenChange, onGuard
               <Button
                 type="submit"
                 isPending={guardando}
-                className="bg-(--pl-sash) font-semibold text-white! transition-colors duration-200 hover:bg-(--pl-sash)/85"
+                className="bg-(--pl-sash-fill) font-semibold text-white! transition-colors duration-200 hover:bg-(--pl-sash-fill)/85"
               >
                 {guardando
                   ? esNuevo

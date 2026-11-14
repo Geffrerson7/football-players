@@ -4,6 +4,7 @@ import { Button, Chip, Table } from "@heroui/react";
 import Link from "next/link";
 import { useState } from "react";
 import { etiquetaEstado, formatearFecha, type JugadorDTO } from "@/lib/jugadores";
+import { useEsMovil } from "./useEsMovil";
 
 const JUGADORES_POR_PAGINA = 10;
 
@@ -16,8 +17,80 @@ type Props = {
   onEliminar: (jugador: JugadorDTO) => void;
 };
 
+const claseBotonEditar = "border-blue-500/40 text-blue-700 hover:bg-blue-500/10 dark:text-blue-300";
+const claseBotonEliminar = "border-red-500/40 text-red-700 hover:bg-red-500/10 dark:text-red-300";
+
+function textoDisponibilidad(jugador: JugadorDTO) {
+  return jugador.activo ? "Disponible para convocatoria" : "Fuera de convocatoria";
+}
+
+/** Los mismos datos y acciones que una fila de la tabla, apilados para pantallas estrechas (H-26). */
+function TarjetaJugador({
+  jugador,
+  onEditar,
+  onEliminar,
+}: { jugador: JugadorDTO } & Pick<Props, "onEditar" | "onEliminar">) {
+  return (
+    <li className="pl-card">
+      <span className="pl-table-numeral" aria-label={`Dorsal ${jugador.dorsal}`}>
+        {String(jugador.dorsal).padStart(2, "0")}
+      </span>
+
+      <div className="min-w-0 self-center">
+        <Link
+          href={`/jugadores/${jugador.id}`}
+          className="wrap-break-word font-semibold underline underline-offset-4"
+        >
+          {jugador.nombre}
+        </Link>
+        <p className="mt-0.5 text-xs text-(--pl-muted)">{textoDisponibilidad(jugador)}</p>
+      </div>
+
+      <div className="pl-card-datos">
+        <span className="inline-flex rounded-md border border-(--pl-line) px-2.5 py-1 text-xs font-bold uppercase tracking-wide">
+          {jugador.posicion || "Sin posición"}
+        </span>
+        <Chip
+          color={jugador.activo ? "success" : "danger"}
+          variant="soft"
+          size="sm"
+          className={jugador.activo ? "pl-estado-activo" : "pl-estado-inactivo"}
+        >
+          {etiquetaEstado(jugador.activo)}
+        </Chip>
+        <span className="text-sm text-(--pl-muted)">
+          <span className="sr-only">Fecha de nacimiento: </span>
+          {formatearFecha(jugador.fechaNacimiento)}
+        </span>
+      </div>
+
+      <div className="pl-card-acciones">
+        <Button
+          size="sm"
+          variant="outline"
+          onPress={() => onEditar(jugador)}
+          aria-label={`Editar a ${jugador.nombre}`}
+          className={claseBotonEditar}
+        >
+          Editar
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onPress={() => onEliminar(jugador)}
+          aria-label={`Eliminar a ${jugador.nombre}`}
+          className={claseBotonEliminar}
+        >
+          Eliminar
+        </Button>
+      </div>
+    </li>
+  );
+}
+
 export default function PlayersTable({ jugadores, onEditar, onEliminar }: Props) {
   const [pagina, setPagina] = useState(1);
+  const esMovil = useEsMovil();
 
   const totalJugadores = jugadores.length;
   const totalPaginas = Math.max(Math.ceil(totalJugadores / JUGADORES_POR_PAGINA), 1);
@@ -35,7 +108,21 @@ export default function PlayersTable({ jugadores, onEditar, onEliminar }: Props)
         <span className="ml-auto">{String(totalJugadores).padStart(2, "0")} JUG.</span>
       </div>
 
-      <Table className="pl-table">
+      {esMovil ? (
+        <ul className="pl-cards sm:hidden" aria-label="Jugadores del plantel">
+          {jugadoresPaginados.map((jugador) => (
+            <TarjetaJugador
+              key={jugador.id}
+              jugador={jugador}
+              onEditar={onEditar}
+              onEliminar={onEliminar}
+            />
+          ))}
+        </ul>
+      ) : (
+      // max-sm:hidden: en móvil, la tabla del HTML del servidor no se llega a ver
+      // mientras la página se hidrata y pasa a tarjetas.
+      <Table className="pl-table max-sm:hidden">
         <Table.ScrollContainer>
           <Table.Content aria-label="Tabla de jugadores del plantel">
             <Table.Header>
@@ -65,7 +152,7 @@ export default function PlayersTable({ jugadores, onEditar, onEliminar }: Props)
                         {jugador.nombre}
                       </Link>
                       <p className="mt-0.5 text-xs text-(--pl-muted)">
-                        {jugador.activo ? "Disponible para convocatoria" : "Fuera de convocatoria"}
+                        {textoDisponibilidad(jugador)}
                       </p>
                     </div>
                   </Table.Cell>
@@ -77,7 +164,12 @@ export default function PlayersTable({ jugadores, onEditar, onEliminar }: Props)
                   </Table.Cell>
 
                   <Table.Cell>
-                    <Chip color={jugador.activo ? "success" : "danger"} variant="soft" size="sm">
+                    <Chip
+          color={jugador.activo ? "success" : "danger"}
+          variant="soft"
+          size="sm"
+          className={jugador.activo ? "pl-estado-activo" : "pl-estado-inactivo"}
+        >
                       {etiquetaEstado(jugador.activo)}
                     </Chip>
                   </Table.Cell>
@@ -95,7 +187,7 @@ export default function PlayersTable({ jugadores, onEditar, onEliminar }: Props)
                         variant="ghost"
                         onPress={() => onEditar(jugador)}
                         aria-label={`Editar a ${jugador.nombre}`}
-                        className="border-blue-500/40 text-blue-700 hover:bg-blue-500/10 dark:text-blue-300"
+                        className={claseBotonEditar}
                       >
                         Editar
                       </Button>
@@ -105,7 +197,7 @@ export default function PlayersTable({ jugadores, onEditar, onEliminar }: Props)
                         variant="outline"
                         onPress={() => onEliminar(jugador)}
                         aria-label={`Eliminar a ${jugador.nombre}`}
-                        className="border-red-500/40 text-red-700 hover:bg-red-500/10 dark:text-red-300"
+                        className={claseBotonEliminar}
                       >
                         Eliminar
                       </Button>
@@ -117,6 +209,7 @@ export default function PlayersTable({ jugadores, onEditar, onEliminar }: Props)
           </Table.Content>
         </Table.ScrollContainer>
       </Table>
+      )}
 
       <div className="flex flex-col gap-3 border-t border-(--pl-line) px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-(--pl-muted)">

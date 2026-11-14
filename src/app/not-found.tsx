@@ -24,7 +24,7 @@ export default function NotFound() {
           </span>
         </div>
 
-        <p className="mb-3 text-sm font-bold uppercase tracking-[0.3em] text-(--pl-sash)">
+        <p className="mb-3 text-sm font-bold uppercase tracking-[0.3em] text-(--pl-sash-text)">
           Fuera de juego
         </p>
 
@@ -45,7 +45,7 @@ export default function NotFound() {
 
         <Link
           href="/"
-          className="inline-flex items-center justify-center gap-2 bg-(--pl-sash) px-6 py-3 font-bold text-(--pl-on-sash) transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--pl-sash)"
+          className="inline-flex items-center justify-center gap-2 bg-(--pl-sash-fill) px-6 py-3 font-bold text-(--pl-on-sash) transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-(--pl-sash)"
         >
           <House size={18} aria-hidden="true" />
           Volver al inicio

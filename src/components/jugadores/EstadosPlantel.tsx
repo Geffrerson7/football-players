@@ -10,7 +10,7 @@ export function EstadoVacio({ onRegistrar }: { onRegistrar: () => void }) {
       <p className="max-w-md text-(--pl-muted)">
         Registra al primer jugador para empezar a armar tu selección.
       </p>
-      <Button onPress={onRegistrar} className="bg-(--pl-sash) font-semibold text-white">
+      <Button onPress={onRegistrar} className="bg-(--pl-sash-fill) font-semibold text-white">
         Registrar jugador
       </Button>
     </section>
@@ -41,14 +41,28 @@ export function EstadoError({
   );
 }
 
-export function EstadoSinResultados({ onLimpiar }: { onLimpiar: () => void }) {
+export function EstadoSinResultados({
+  busqueda,
+  onLimpiar,
+}: {
+  /** Texto buscado; vacío si solo se filtró por posición. */
+  busqueda?: string;
+  onLimpiar: () => void;
+}) {
   return (
-    <section className="pl-state">
+    // role="status": el lector de pantalla anuncia que la búsqueda no dio resultados.
+    <section role="status" className="pl-state">
       <span className="pl-state-kicker">SIN COINCIDENCIAS</span>
       <h3 className="pl-display text-3xl font-extrabold sm:text-4xl">
-        No hay jugadores en esta posición.
+        {busqueda
+          ? `Ningún jugador coincide con «${busqueda}».`
+          : "No hay jugadores en esta posición."}
       </h3>
-      <p className="text-(--pl-muted)">Prueba con otra posición para consultar el plantel.</p>
+      <p className="text-(--pl-muted)">
+        {busqueda
+          ? "Revisa el nombre o quita los filtros para consultar el plantel."
+          : "Prueba con otra posición para consultar el plantel."}
+      </p>
       <Button variant="outline" onPress={onLimpiar}>
         Ver todos los jugadores
       </Button>

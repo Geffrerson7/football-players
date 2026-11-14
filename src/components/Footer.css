@@ -3,6 +3,8 @@
   --fp-footer-text: #eef1ea;
   --fp-footer-muted: #a4b5a8;
   --fp-footer-red: #d6232b;
+  /* Rojo para texto sobre el fondo oscuro del pie (el de la banda solo da 3:1). */
+  --fp-footer-red-text: #ff8589;
 
   color: var(--fp-footer-text);
   background: var(--fp-footer-bg);
@@ -80,7 +82,7 @@
 }
 
 .fp-footer-tagline span {
-  color: var(--fp-footer-red);
+  color: var(--fp-footer-red-text);
   font-weight: 900;
 }
 

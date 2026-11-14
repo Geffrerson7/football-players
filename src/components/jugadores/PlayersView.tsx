@@ -1,17 +1,19 @@
 "use client";
 
-import { Button } from "@heroui/react";
+import { Button, Label, SearchField } from "@heroui/react";
 import { useMemo, useState } from "react";
-import type { JugadorDTO } from "@/lib/jugadores";
+import { coincideNombre, type JugadorDTO } from "@/lib/jugadores";
 import DeletePlayerModal from "./DeletePlayerModal";
 import { EstadoSinResultados, EstadoVacio } from "./EstadosPlantel";
 import PlayerFormModal from "./PlayerFormModal";
 import PlayersTable from "./PlayersTable";
+import { Search, X } from "lucide-react";
 
 const TODOS = "todos";
 
 export default function PlayersView({ jugadores }: { jugadores: JugadorDTO[] }) {
   const [filtro, setFiltro] = useState<string>(TODOS);
+  const [busqueda, setBusqueda] = useState("");
 
   // Formulario compartido para crear (jugadorEditado = null) y editar.
   const [formAbierto, setFormAbierto] = useState(false);
@@ -30,11 +32,23 @@ export default function PlayersView({ jugadores }: { jugadores: JugadorDTO[] }) 
     [jugadores],
   );
 
-  // El servidor ya los entrega ordenados por dorsal.
+  const textoBuscado = busqueda.trim();
+
+  // El servidor ya los entrega ordenados por dorsal. La posición y el nombre se combinan.
   const visibles = useMemo(
-    () => (filtro === TODOS ? jugadores : jugadores.filter((j) => j.posicion === filtro)),
-    [jugadores, filtro],
+    () =>
+      jugadores.filter(
+        (j) =>
+          (filtro === TODOS || j.posicion === filtro) &&
+          (textoBuscado === "" || coincideNombre(j.nombre, textoBuscado)),
+      ),
+    [jugadores, filtro, textoBuscado],
   );
+
+  function limpiarFiltros() {
+    setFiltro(TODOS);
+    setBusqueda("");
+  }
 
   const total = jugadores.length;
 
@@ -73,7 +87,7 @@ export default function PlayersView({ jugadores }: { jugadores: JugadorDTO[] }) 
           <div className="pl-band">
             <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5 px-5 py-5 sm:px-8 sm:py-7">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-white/80">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-white">
                   Lista de todos los jugadores
                 </p>
                 <p
@@ -105,6 +119,23 @@ export default function PlayersView({ jugadores }: { jugadores: JugadorDTO[] }) 
             </h2>
           </div>
 
+          <div className="flex flex-col gap-4 sm:items-end">
+          {total > 0 && (
+            <SearchField
+              name="busqueda"
+              value={busqueda}
+              onChange={setBusqueda}
+              className="flex w-full flex-col gap-1.5 sm:w-72"
+            >
+              <Label className="text-sm font-semibold text-(--pl-ink)">Buscar por nombre</Label>
+              <SearchField.Group>
+                <SearchField.SearchIcon />
+                <SearchField.Input placeholder="Nombre del jugador" autoComplete="off" />
+                <SearchField.ClearButton aria-label="Borrar la búsqueda" />
+              </SearchField.Group>
+            </SearchField>
+          )}
+
           {posiciones.length > 0 && (
             <div
               role="group"
@@ -132,22 +163,29 @@ export default function PlayersView({ jugadores }: { jugadores: JugadorDTO[] }) 
               })}
             </div>
           )}
+          </div>
         </div>
 
         {total === 0 && <EstadoVacio onRegistrar={() => abrirFormulario(null)} />}
 
         {total > 0 && visibles.length === 0 && (
-          <EstadoSinResultados onLimpiar={() => setFiltro(TODOS)} />
+          <EstadoSinResultados busqueda={textoBuscado} onLimpiar={limpiarFiltros} />
         )}
 
         {visibles.length > 0 && (
           <>
-            <div className="mb-3 flex flex-wrap items-center justify-end gap-2 text-sm text-(--pl-muted)">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-(--pl-muted)">
+              {/* Anuncia el número de resultados a los lectores de pantalla al buscar o filtrar.
+                  Sin filtros queda vacío: el total ya está en la banda. */}
+              <p role="status">
+                {visibles.length === total ? "" : `${visibles.length} de ${total} jugadores`}
+              </p>
               <p className="uppercase tracking-wider">Ordenados por dorsal</p>
             </div>
 
             <PlayersTable
-              key={filtro}
+              // Al cambiar de filtro o de búsqueda, la tabla vuelve a la primera página.
+              key={`${filtro}|${textoBuscado}`}
               jugadores={visibles}
               onEditar={abrirFormulario}
               onEliminar={abrirEliminar}
@@ -162,7 +200,8 @@ export default function PlayersView({ jugadores }: { jugadores: JugadorDTO[] }) 
         isOpen={formAbierto}
         onOpenChange={setFormAbierto}
         onGuardado={(_jugador, esNuevo) => {
-          if (esNuevo) setFiltro(TODOS);
+          // Sin filtros, para que el jugador recién registrado quede a la vista.
+          if (esNuevo) limpiarFiltros();
         }}
       />
 
