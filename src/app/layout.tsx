@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Big_Shoulders, Hanken_Grotesk } from "next/font/google";
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import { obtenerSesion } from "@/lib/sesion";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -30,7 +31,10 @@ export const metadata: Metadata = {
   description: "Gestión de jugadores, equipos y partidos con una estética futbolística editorial.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // Solo para la cabecera (nombre, rol, cierre de sesión). El acceso lo protege src/proxy.ts.
+  const usuario = await obtenerSesion();
+
   return (
     // suppressHydrationWarning: next-themes añade la clase del tema a <html> antes de hidratar.
     <html
@@ -40,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-dvh">
         <Providers>
-          <Navbar />
+          <Navbar usuario={usuario && { nombre: usuario.nombre, rol: usuario.rol }} />
           <main id="contenido">{children}</main>
           <Footer />
         </Providers>

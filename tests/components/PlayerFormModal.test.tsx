@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { actualizarJugador, crearJugador } from "@/app/jugadores/actions";
 import PlayerFormModal from "@/components/jugadores/PlayerFormModal";
 import type { JugadorDTO } from "@/lib/jugadores";
+import { MENSAJE_SIN_PERMISOS } from "@/lib/roles";
 import { jugador } from "./fixtures";
 
 vi.mock("@/app/jugadores/actions", () => ({
@@ -154,5 +155,43 @@ describe("PlayerFormModal en modo edición", () => {
       "Mediocampista",
       "Delantero",
     ]);
+  });
+});
+
+describe("PlayerFormModal con el usuario demo", () => {
+  // Los botones siguen visibles para el demo; el servidor rechaza la acción.
+  it("al registrar, muestra el mensaje de falta de permisos y no cierra el formulario", async () => {
+    vi.mocked(crearJugador).mockResolvedValue({ ok: false, error: MENSAJE_SIN_PERMISOS });
+    const { user, onOpenChange, onGuardado } = renderModal(null);
+
+    await user.type(campo("Nombre"), "Pedri");
+    await user.click(screen.getByRole("button", { name: /Posición/ }));
+    await user.click(await screen.findByRole("option", { name: "Mediocampista" }));
+    await user.type(dorsal(), "8");
+    await user.type(fecha(), "2002-11-25");
+    await user.click(screen.getByRole("button", { name: "Registrar jugador" }));
+
+    await vi.waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("No se pudo registrar al jugador", {
+        description: "El usuario demo no tiene permisos para modificar datos.",
+      }),
+    );
+    expect(onGuardado).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+
+  it("al editar, muestra el mensaje de falta de permisos y no cierra el formulario", async () => {
+    vi.mocked(actualizarJugador).mockResolvedValue({ ok: false, error: MENSAJE_SIN_PERMISOS });
+    const { user, onOpenChange, onGuardado } = renderModal(yamal);
+
+    await user.click(screen.getByRole("button", { name: "Guardar cambios" }));
+
+    await vi.waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith("No se pudo actualizar al jugador", {
+        description: MENSAJE_SIN_PERMISOS,
+      }),
+    );
+    expect(onGuardado).not.toHaveBeenCalled();
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
 });

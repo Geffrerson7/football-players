@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { describe, expect, it, vi } from "vitest";
 import { eliminarJugador } from "@/app/jugadores/actions";
 import DeletePlayerModal from "@/components/jugadores/DeletePlayerModal";
+import { MENSAJE_SIN_PERMISOS } from "@/lib/roles";
 import { jugador } from "./fixtures";
 
 vi.mock("@/app/jugadores/actions", () => ({
@@ -51,6 +52,22 @@ describe("DeletePlayerModal", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(error);
     expect(toast.error).toHaveBeenCalledWith("No se pudo eliminar al jugador", {
       description: error,
+    });
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+
+  it("muestra el mensaje de falta de permisos si el servidor rechaza al usuario demo", async () => {
+    vi.mocked(eliminarJugador).mockResolvedValue({ ok: false, error: MENSAJE_SIN_PERMISOS });
+    const { user, onOpenChange } = renderModal();
+
+    // El botón sigue disponible para el demo: quien decide es el servidor.
+    await user.click(screen.getByRole("button", { name: "Sí, eliminar" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "El usuario demo no tiene permisos para modificar datos.",
+    );
+    expect(toast.error).toHaveBeenCalledWith("No se pudo eliminar al jugador", {
+      description: MENSAJE_SIN_PERMISOS,
     });
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });

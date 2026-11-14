@@ -4,12 +4,13 @@ import { revalidatePath } from "next/cache";
 import { Prisma } from "@/generated/prisma/client";
 import type { JugadorDTO } from "@/lib/jugadores";
 import { prisma } from "@/lib/prisma";
+import { errorDePermisoDeEscritura } from "@/lib/sesion";
 import { jugadorSchema, type CampoJugador } from "@/lib/validacion";
 import { aJugadorDTO } from "./data";
 
-// NOTA DE SEGURIDAD: las Server Actions son endpoints HTTP públicos.
-// Todavía no hay autenticación (fase pendiente del roadmap), así que cualquier
-// visitante puede ejecutarlas. Por eso validamos siempre en el servidor.
+// NOTA DE SEGURIDAD: las Server Actions son endpoints HTTP públicos que se pueden
+// invocar directamente, sin pasar por la interfaz. Por eso cada una comprueba primero
+// la sesión y el rol (solo `admin` puede escribir) y después valida los datos.
 
 export type ResultadoAccion<T> =
   | { ok: true; datos: T }
@@ -51,6 +52,9 @@ function revalidarJugador(id?: number) {
 }
 
 export async function crearJugador(formData: FormData): Promise<ResultadoAccion<JugadorDTO>> {
+  const denegado = await errorDePermisoDeEscritura();
+  if (denegado) return { ok: false, error: denegado };
+
   const datos = leerFormulario(formData, true);
   if (!datos.success) return errorDeValidacion(datos.error.issues);
 
@@ -70,6 +74,9 @@ export async function actualizarJugador(
   id: number,
   formData: FormData,
 ): Promise<ResultadoAccion<JugadorDTO>> {
+  const denegado = await errorDePermisoDeEscritura();
+  if (denegado) return { ok: false, error: denegado };
+
   if (!idValido(id)) return { ok: false, error: "El identificador del jugador no es válido." };
 
   const datos = leerFormulario(formData);
@@ -93,6 +100,9 @@ export async function actualizarJugador(
 }
 
 export async function eliminarJugador(id: number): Promise<ResultadoAccion<{ id: number }>> {
+  const denegado = await errorDePermisoDeEscritura();
+  if (denegado) return { ok: false, error: denegado };
+
   if (!idValido(id)) return { ok: false, error: "El identificador del jugador no es válido." };
 
   try {
