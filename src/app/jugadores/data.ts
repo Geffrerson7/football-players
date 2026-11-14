@@ -2,6 +2,7 @@ import "server-only";
 import type { Jugador } from "@/generated/prisma/client";
 import { fechaAISO, type JugadorDTO } from "@/lib/jugadores";
 import { prisma } from "@/lib/prisma";
+import { exigirSesion } from "@/lib/sesion";
 
 const camposJugador = {
   id: true,
@@ -26,7 +27,11 @@ export function aJugadorDTO(
   };
 }
 
+// Las consultas exigen sesión por su cuenta (cualquier rol puede leer): no dependen
+// de que src/proxy.ts haya filtrado antes la petición.
+
 export async function obtenerJugadores(): Promise<JugadorDTO[]> {
+  await exigirSesion();
   const jugadores = await prisma.jugador.findMany({
     select: camposJugador,
     orderBy: [{ dorsal: "asc" }, { id: "asc" }],
@@ -35,6 +40,7 @@ export async function obtenerJugadores(): Promise<JugadorDTO[]> {
 }
 
 export async function obtenerJugadorConDetalle(id: number) {
+  await exigirSesion();
   const jugador = await prisma.jugador.findUnique({
     where: { id },
     select: { ...camposJugador, detalle: true },

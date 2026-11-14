@@ -4,6 +4,7 @@
 |---|---|---|
 | **Auditoría inicial** | 2026-11-10 | React 19 + Vite (SPA, JavaScript) + Supabase |
 | **Actualización** | 2026-11-10, tras la migración (fase 0) | Next.js 16 (TypeScript) + Prisma 7 + PostgreSQL (Docker en desarrollo, Neon en producción) |
+| **Actualización** | 2026-11-13, tras la fase 3 | + Better Auth (inicio de sesión obligatorio, roles `admin` y `demo`) |
 
 Este documento conserva la auditoría original como punto de partida y registra el **estado actual** de cada hallazgo después de la migración.
 
@@ -44,7 +45,9 @@ CRUD de jugadores funcional con una identidad visual cuidada, en fase de prototi
 
 ### Estado actual
 
-La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anterior: **la base de datos ya solo se accede desde el servidor** y el navegador no recibe credenciales. El esquema está versionado en el repositorio, los datos se cargan con un seed reproducible y se resolvieron 19 de los 30 hallazgos originales (y 3 más de forma parcial).
+La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anterior: **la base de datos ya solo se accede desde el servidor** y el navegador no recibe credenciales. El esquema está versionado en el repositorio, los datos se cargan con un seed reproducible y se resolvieron 21 de los 30 hallazgos originales (y 1 más de forma parcial).
+
+La fase 3 cerró el riesgo que quedaba: **la aplicación exige iniciar sesión** (Better Auth) y **solo el rol `admin` puede modificar datos**; el permiso se comprueba en el servidor, en cada Server Action.
 
 ### Fortalezas (se mantienen)
 
@@ -61,18 +64,19 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 - Esquema versionado con migraciones, incluidas las restricciones `CHECK` originales.
 - TypeScript estricto en todo el código.
 - Errores de base de datos traducidos a mensajes claros (registro inexistente, jugador con goles).
+- Autenticación con Better Auth: inicio de sesión obligatorio, roles `admin` y `demo`, y control de acceso en el servidor (fase 3).
+- Restricciones `CHECK` en la base de datos para el dorsal, la fecha de nacimiento y el rol.
 
 ### Debilidades vigentes
 
-- **No hay autenticación:** las Server Actions son endpoints públicos.
 - No hay pruebas en un navegador real ni medición de cobertura (las unitarias, de componentes y de integración ya existen; fase 2).
 - Las secciones Equipos y Partidos siguen sin existir.
 - El modelo de datos tiene inconsistencias heredadas (H-31 a H-35).
 
 ### Riesgos principales
 
-1. Cualquier visitante puede crear, editar o eliminar jugadores llamando a las Server Actions (H-17).
-2. Jugadores sin equipo y goles registrados dos veces impedirán construir estadísticas fiables (H-31, H-32).
+1. Jugadores sin equipo y goles registrados dos veces impedirán construir estadísticas fiables (H-31, H-32).
+2. El límite de intentos de inicio de sesión vive en la memoria del proceso: en un entorno serverless es una protección de «mejor esfuerzo» (ver fase 3).
 
 ---
 
@@ -83,12 +87,12 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 | Arquitectura | 6 | 8 | Separación clara: consultas en `data.ts` (solo servidor), mutaciones en `actions.ts`, presentación en componentes. |
 | Calidad del código | 6 | 8 | TypeScript estricto, lint y typecheck limpios, sin código muerto ni duplicado conocido. |
 | Funcionalidad | 5 | 6 | Bugs del CRUD corregidos; Equipos y Partidos siguen sin existir. |
-| Base de datos | 4 | 6 | Esquema y migraciones en el repo, seed reproducible. Persisten los problemas del modelo (H-31 a H-35) y los dorsales repetidos. |
-| Seguridad | 3 | 5 | Sin credenciales en el navegador, validación en el servidor y proyecto de Supabase desactivado. Falta la autenticación. |
+| Base de datos | 4 | 6 | Esquema y migraciones en el repo, seed reproducible, `CHECK` de dorsal y fecha de nacimiento. Persisten los problemas del modelo (H-31 a H-35) y los dorsales repetidos. |
+| Seguridad | 3 | 8 | Sin credenciales en el navegador, validación en el servidor, proyecto de Supabase desactivado, inicio de sesión obligatorio y control de acceso por rol en cada Server Action. El límite de intentos de inicio de sesión es de «mejor esfuerzo». |
 | UI/UX | 7 | 7 | Mismo diseño, revisado en el navegador por el propietario tras la migración; terminología y etiquetas corregidas. Tabla en móvil y secciones vacías sin resolver. |
 | Rendimiento | 7 | 7 | Código dividido por ruta y fuentes alojadas localmente; el CSS de HeroUI sigue completo. |
 | Accesibilidad | 5 | 6 | `lang="es"`, un solo `<main>`, `<nav>` en la paginación. El contraste en modo oscuro sigue sin corregir. |
-| Testing | 1 | 7 | 101 pruebas (unitarias, de componentes y de integración contra PostgreSQL) con `pnpm test` y CI. Faltan pruebas en navegador y medición de cobertura. |
+| Testing | 1 | 7 | 158 pruebas (unitarias, de componentes y de integración contra PostgreSQL, incluido el control de acceso con sesiones reales) con `pnpm test` y CI. Faltan pruebas en navegador y medición de cobertura. |
 | Mantenibilidad | 5 | 8 | Formulario único, utilidades centralizadas, README fiel al código. |
 
 ---
@@ -124,15 +128,17 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 - **Categoría:** Funcional · **Certeza:** Confirmado · **Severidad:** baja-media
 - **Estado actual:** crear y editar usan `useTransition`; el botón queda en estado pendiente y el modal no se puede cerrar mientras guarda.
 
-#### H-06 · Fechas de nacimiento futuras o absurdas · 🟡 Parcial
+#### H-06 · Fechas de nacimiento futuras o absurdas · ✅ Resuelto
 - **Categoría:** Validación · **Certeza:** Confirmado · **Severidad:** media
-- **Estado actual:** rechazadas en el cliente (`min`/`max` y `validate`) y en el servidor (`src/lib/validacion.ts`), verificado con prueba de extremo a extremo.
-- **Pendiente:** un `CHECK` en la base de datos, para que tampoco puedan entrar por otras vías.
+- **Estado actual:**
+  - Rechazadas en el cliente (`min`/`max` y `validate`) y en el servidor (`src/lib/validacion.ts`).
+  - Rechazadas también en la base de datos (fase 3): `chk_fecha_nacimiento_rango` exige una fecha entre 1900-01-01 y hoy, con un día de margen por las zonas horarias. Probado en `tests/integration/jugadores-data.test.ts`.
 
 #### H-07 · Dorsales duplicados · 🔴 Vigente
 - **Categoría:** Datos · **Certeza:** Confirmado (backup) · **Severidad:** media
 - **Evidencia:** no existe `UNIQUE(dorsal)` y los datos ya tienen repetidos: el 10 aparece en 5 jugadores y el 7 en 2.
-- **Solución:** decidir la regla de negocio. ¿El dorsal debe ser único globalmente o por equipo? Depende de H-31. Después, limpiar los duplicados, añadir la restricción y mostrar un mensaje específico (código `P2002`).
+- **Avance (fase 3):** la base de datos ya limita el dorsal a 1-99 (`chk_dorsal_rango`).
+- **Solución pendiente:** decidir la regla de negocio. ¿El dorsal debe ser único globalmente o por equipo? Depende de H-31: los jugadores son de selecciones distintas, así que el 10 repetido es legítimo y una restricción `UNIQUE(dorsal)` global sería incorrecta. Se aplaza a la fase 6, junto con `equipo_id`: entonces, limpiar los duplicados, añadir `UNIQUE(equipo_id, dorsal)` y mostrar un mensaje específico (código `P2002`).
 
 #### H-08 · Navegación a secciones que no existen · 🔴 Vigente
 - **Categoría:** Funcional / UX · **Certeza:** Confirmado · **Severidad:** media
@@ -178,15 +184,15 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 
 ### Seguridad
 
-#### H-17 · Escrituras sin autenticación · 🟡 Parcial
-- **Categoría:** Seguridad · **Certeza:** Confirmado · **Severidad:** crítica antes; alta ahora
+#### H-17 · Escrituras sin autenticación · ✅ Resuelto
+- **Categoría:** Seguridad · **Certeza:** Confirmado · **Severidad:** crítica al inicio; alta tras la migración
 - **Evidencia original (backup):** ninguna tabla de `public` tenía RLS y el rol `anon` tenía `GRANT ALL` sobre todas las tablas y secuencias. Cualquiera con la clave pública, que viajaba en el bundle, podía leer, modificar o borrar todo.
 - **Estado actual:**
   - ✅ La base de datos ya no es accesible desde el navegador; la cadena de conexión solo existe en el servidor.
   - ✅ Toda escritura pasa por validación en el servidor y por comprobación de id.
-  - 🔴 Las Server Actions (`src/app/jugadores/actions.ts`) son endpoints HTTP públicos sin autenticación: cualquier visitante puede crear, editar o eliminar jugadores.
   - ✅ El proyecto de Supabase está desactivado (confirmado por el propietario, 2026-11-11): la clave pública antigua ya no da acceso a los datos.
-- **Solución pendiente:** añadir autenticación (por ejemplo, Auth.js o Better Auth) y comprobar la sesión al inicio de cada Server Action.
+  - ✅ Autenticación con Better Auth (fase 3, 2026-11-13): cada Server Action de `src/app/jugadores/actions.ts` comprueba la sesión y el rol antes de validar o escribir. Sin sesión, o con el rol `demo`, la acción se rechaza y la base de datos no cambia.
+  - ✅ Sin sesión no se ve ninguna página (`src/proxy.ts`) y las consultas de `data.ts` exigen sesión por su cuenta.
 
 #### H-18 · Variables de entorno mal documentadas · ✅ Resuelto
 - **Categoría:** Configuración · **Certeza:** Confirmado · **Severidad:** baja
@@ -288,8 +294,8 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 
 | Estado | Hallazgos |
 |---|---|
-| ✅ Resuelto (19) | H-01, H-02, H-03, H-04, H-05, H-09, H-10, H-12, H-13, H-14, H-18, H-20, H-21, H-23, H-24, H-25, H-27, H-28, H-29 |
-| 🟡 Parcial (3) | H-06, H-17, H-30 |
+| ✅ Resuelto (21) | H-01, H-02, H-03, H-04, H-05, H-06, H-09, H-10, H-12, H-13, H-14, H-17, H-18, H-20, H-21, H-23, H-24, H-25, H-27, H-28, H-29 |
+| 🟡 Parcial (1) | H-30 |
 | 🔴 Vigente (11) | H-07, H-08, H-16, H-19, H-22, H-26, H-31, H-32, H-33, H-34, H-35 |
 | ⚪ Obsoleto (1) | H-11 |
 | ➖ Descartado (1) | H-15 |
@@ -300,13 +306,14 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 
 ### 1. Críticas
 - ~~Desactivar o eliminar el proyecto de Supabase (H-17).~~ ✅ Hecho.
-- Autenticación en las Server Actions (H-17).
+- ~~Autenticación en las Server Actions (H-17).~~ ✅ Hecho en la fase 3.
 
 ### 2. Importantes
 - Relacionar jugadores con equipos (H-31).
 - Decidir la regla del dorsal y aplicarla (H-07).
 - ~~Llevar las pruebas de extremo a extremo al repositorio y añadir pruebas unitarias.~~ ✅ Hecho en la fase 2.
-- `CHECK` de fecha de nacimiento en la base de datos (H-06).
+- ~~`CHECK` de fecha de nacimiento en la base de datos (H-06).~~ ✅ Hecho en la fase 3.
+- Límite de intentos de inicio de sesión compartido entre instancias (ahora vive en la memoria del proceso).
 
 ### 3. Experiencia y accesibilidad
 - Contraste en modo oscuro (H-22).
@@ -391,16 +398,69 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 - **Criterio de aceptación:** ✅ `pnpm test` en verde en local y en CI. El workflow pasó en su primera ejecución en GitHub (PR #3, 1 min 6 s), junto con el despliegue de vista previa en Vercel.
 - **Fuera de alcance:** pruebas en un navegador real (Playwright), medición de cobertura y pruebas automáticas de accesibilidad.
 
-### Fase 3 · Seguridad e integridad — Prioridad crítica
-- **Tareas:**
+### Fase 3 · Seguridad e integridad — ✅ Completada (2026-11-13)
+- **Objetivo:** que nadie pueda ver ni modificar datos sin iniciar sesión, y que solo el administrador pueda escribir.
+- **Decisiones tomadas** (estaban pendientes de definir):
+
+  | Tema | Decisión |
+  |---|---|
+  | Proveedor | Better Auth 1.7 con el adaptador de Prisma. Sesiones en PostgreSQL. |
+  | Inicio de sesión | Correo y contraseña. Sin registro público (`disableSignUp`). |
+  | Alta del administrador | `pnpm db:usuarios` crea o actualiza los usuarios a partir de `ADMIN_EMAIL` y `ADMIN_PASSWORD` (mínimo 12 caracteres). Es idempotente y sirve para cambiar la contraseña. |
+  | Credenciales demo | `DEMO_EMAIL` y `DEMO_PASSWORD` (mínimo 8 caracteres). |
+  | Otras variables | `BETTER_AUTH_SECRET` (obligatoria) y `BETTER_AUTH_URL` (opcional en Vercel). |
+  | API HTTP de Better Auth | No se monta `/api/auth/*`. El inicio y el cierre de sesión son Server Actions, así que no quedan expuestos endpoints sin uso (cambio de contraseña, edición de perfil, revocación de sesiones) al usuario demo, que es compartido. |
+
+- **Dos roles:**
+
+  | Rol | Puede | No puede |
+  |---|---|---|
+  | `admin` | Ver todo, registrar, editar y eliminar | — |
+  | `demo` | Ver todo (peticiones GET: páginas y consultas) | Ejecutar Server Actions (crear, editar, eliminar), que en Next.js viajan como POST |
+
+- **Tareas realizadas:**
   - ~~Desactivar o eliminar el proyecto de Supabase.~~ ✅ Hecho (2026-11-11).
-  - Autenticación (por ejemplo, Auth.js o Better Auth) con comprobación de sesión al inicio de cada Server Action.
-  - `CHECK` de fecha de nacimiento y de dorsal (1-99) en la base de datos.
-  - Regla del dorsal (H-07): limpiar duplicados, añadir la restricción y mostrar el mensaje del error `P2002`.
-- **Archivos:** `src/app/jugadores/actions.ts`, `prisma/schema.prisma`, nueva migración, layout para el inicio y cierre de sesión.
-- **Dependencias:** la regla del dorsal depende de H-31 (¿único por equipo?).
-- **Riesgo:** medio. La restricción `UNIQUE` falla si quedan duplicados.
-- **Criterio de aceptación:** un visitante sin sesión no puede escribir; una petición directa a una Server Action sin sesión se rechaza.
+  - **Inicio de sesión obligatorio:** `src/proxy.ts` valida la sesión contra la base de datos y redirige a `/login` cualquier ruta sin sesión (incluidas las inexistentes). Con sesión, `/login` redirige al inicio.
+  - **Control de acceso en el servidor:** `errorDePermisoDeEscritura()` (`src/lib/sesion.ts`) se ejecuta al inicio de cada Server Action, antes de validar los datos. Las consultas de `data.ts` exigen sesión con `exigirSesion()`, sin depender del proxy.
+  - **Usuario demo:** botón «Entrar como demo» en `/login`. La Server Action `entrarComoDemo` lee las credenciales del entorno e inicia la sesión en el servidor; el formulario no envía ningún campo. Los botones Registrar, Editar y Eliminar siguen visibles; al pulsarlos, el servidor responde «El usuario demo no tiene permisos para modificar datos» y la app lo muestra en una notificación (y dentro del modal de eliminación).
+  - **Sesión expirada:** una Server Action sin sesión no se redirige en el proxy; llega a la acción, que responde «Tu sesión no es válida o ha expirado». Así la interfaz muestra un mensaje en lugar de recibir una respuesta vacía.
+  - **Cabecera:** nombre y rol del usuario, y botón «Cerrar sesión».
+  - **Límite de intentos:** 5 inicios de sesión por minuto por IP y correo (`src/lib/limite-intentos.ts`).
+  - **Base de datos:** tablas `usuarios`, `sesiones`, `cuentas` y `verificaciones`, con `CHECK` del rol; `CHECK` del dorsal (1-99) y de la fecha de nacimiento en `jugadores` (H-06).
+- **Aplazado a la fase 6 — regla del dorsal (H-07):** depende de H-31. Los 12 jugadores son de selecciones distintas, así que una restricción `UNIQUE(dorsal)` global sería incorrecta (el 10 lo llevan 5 jugadores de 5 equipos). Se aplicará `UNIQUE(equipo_id, dorsal)` cuando exista `equipo_id`, con el mensaje del error `P2002`.
+- **Archivos:**
+  - Nuevos: `src/lib/auth.ts`, `src/lib/sesion.ts`, `src/lib/roles.ts`, `src/lib/limite-intentos.ts`, `src/lib/crear-usuario.ts`, `src/proxy.ts`, `src/app/login/` (página y acciones), `src/components/login/LoginForm.tsx`, `prisma/usuarios.ts`, dos migraciones (`add_auth`, `add_jugadores_checks`).
+  - Modificados: `src/app/jugadores/actions.ts`, `src/app/jugadores/data.ts`, `src/app/layout.tsx`, `src/components/Navbar.tsx`, `prisma/schema.prisma`, `.env.example`, `README.md`.
+- **Criterios de aceptación:**
+  - ✅ Sin sesión, cualquier ruta redirige al inicio de sesión.
+  - ✅ Una petición directa a una Server Action sin sesión se rechaza.
+  - ✅ El usuario demo entra con el botón «Entrar como demo» y ve todas las páginas.
+  - ✅ Si el usuario demo pulsa Registrar, Editar o Eliminar, la acción se rechaza en el servidor, se muestra el mensaje de falta de permisos y la base de datos no cambia. Lo mismo ocurre si llama a la Server Action directamente.
+  - ✅ El administrador puede registrar, editar y eliminar.
+- **Pruebas (57 nuevas; 158 en total):**
+
+  | Proyecto | Archivo | Qué cubre |
+  |---|---|---|
+  | `integration` | `permisos.test.ts` | Cada Server Action sin sesión, con una cookie falsificada, con el rol `demo` (rechazada, base sin cambios) y con el rol `admin` (permitida); sesión cerrada; cambio de rol con efecto inmediato; lectura con el rol `demo`; consultas sin sesión |
+  | `integration` | `login.test.ts` | Inicio de sesión (válido, contraseña incorrecta, usuario inexistente, límite de intentos), registro público desactivado, «Entrar como demo», cierre de sesión y redirecciones del proxy |
+  | `integration` | `jugadores-data.test.ts` | `CHECK` del dorsal y de la fecha de nacimiento |
+  | `components` | `LoginForm.test.tsx`, `PlayerFormModal.test.tsx`, `DeletePlayerModal.test.tsx` | Formulario de inicio de sesión, botón demo sin credenciales en el cliente, y mensaje de falta de permisos cuando el servidor rechaza la acción |
+
+  Las pruebas de integración usan sesiones reales de Better Auth contra PostgreSQL (cookie firmada, sesión en la base y rol), no simulaciones. Se comprobó que las pruebas de permisos fallan (12 de 18) al desactivar la comprobación en las acciones.
+- **Verificación de extremo a extremo** (`next start` y peticiones HTTP contra una base con el seed):
+  - Sin sesión: `/`, `/jugadores`, `/jugadores/1`, `/equipos` y una ruta inexistente responden 307 a `/login`.
+  - `eliminarJugador` llamada directamente sin sesión y con la sesión demo: rechazada, 12 jugadores antes y después.
+  - Administrador: inicio de sesión con el formulario, eliminación permitida y cierre de sesión.
+  - Las credenciales demo no aparecen en el HTML de `/login`, en `.next/static` ni en el log del servidor.
+  - `next build` funciona sin ninguna variable de entorno (como en la CI).
+- **Limitaciones conocidas:**
+  - El límite de intentos vive en la memoria del proceso: en Vercel cada instancia lleva su propia cuenta.
+  - El usuario demo es compartido: todas las personas que entran como demo usan la misma cuenta (cada una con su propia sesión).
+  - La pantalla de inicio de sesión no se ha revisado visualmente en un navegador.
+- **Pendiente del propietario para desplegar:**
+  1. Añadir al `.env` local las variables nuevas (ver `.env.example`), y ejecutar `pnpm db:migrate` y `pnpm db:usuarios`.
+  2. En Neon: `pnpm db:deploy` y `pnpm db:usuarios` **antes** de desplegar el código (la aplicación consulta la tabla de sesiones en cada petición).
+  3. En Vercel: `BETTER_AUTH_SECRET`, `DEMO_EMAIL` y `DEMO_PASSWORD`.
 
 ### Fase 4 · Refactor — ✅ Completada dentro de la fase 0
 - H-27, H-28 y H-29 se resolvieron en la migración.
@@ -416,11 +476,13 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 ### Fase 6 · Modelo de datos, Equipos, Partidos y estadísticas — Prioridad media
 - **Tareas:**
   - `equipo_id` en `jugadores` (H-31).
+  - Regla del dorsal (H-07): limpiar duplicados, `UNIQUE(equipo_id, dorsal)` y mensaje del error `P2002`.
   - Marcador calculado desde `goles` (H-32) y posiciones como vista SQL (H-33).
   - Unificar tipos de columna (H-34) e índices en las FK (H-35).
   - Rutas `/equipos` y `/partidos`, goleadores y estadísticas en el perfil.
-- **Dependencias:** fase 3.
+- **Dependencias:** fase 3 (completada). Las nuevas Server Actions deben empezar con `errorDePermisoDeEscritura()` y las nuevas consultas con `exigirSesion()`.
 - **Riesgos:**
+  - La restricción `UNIQUE` falla si quedan duplicados.
   - Las migraciones de datos (asignar equipos, convertir tipos) deben probarse antes en Docker con el seed.
   - Hay que aplicarlas en Neon con `pnpm db:deploy` en el orden correcto.
 
@@ -429,25 +491,26 @@ La migración a Next.js + Prisma eliminó el riesgo más grave del diseño anter
 ## F. Evaluación final (estado actual)
 
 **1. ¿Qué tan cerca está de un producto profesional?**
-Aproximadamente al 65 % (40 % al inicio, 60 % tras la migración). La arquitectura, la calidad del código, la mantenibilidad y la base de pruebas ya están a nivel profesional. Faltan la autenticación y un modelo de datos coherente para crecer.
+Aproximadamente al 75 % (40 % al inicio, 60 % tras la migración, 65 % tras la fase 2). La arquitectura, la calidad del código, la mantenibilidad, la base de pruebas y el control de acceso ya están a nivel profesional. Falta un modelo de datos coherente para crecer.
 
 **2. Los cinco problemas más importantes**
-1. Server Actions públicas sin autenticación (H-17).
-2. Jugadores sin equipo (H-31).
-3. Goles y posiciones guardados dos veces, sin garantía de coherencia (H-32, H-33).
-4. Dorsales repetidos sin una regla de negocio definida (H-07).
-5. Contraste insuficiente en modo oscuro (H-22).
+1. Jugadores sin equipo (H-31).
+2. Goles y posiciones guardados dos veces, sin garantía de coherencia (H-32, H-33).
+3. Dorsales repetidos sin una regla de negocio definida (H-07).
+4. Contraste insuficiente en modo oscuro (H-22).
+5. Navegación a secciones que no existen (H-08).
 
 **3. Las cinco mejoras de mayor impacto**
-1. Añadir autenticación a las Server Actions.
-2. Añadir `equipo_id` a `jugadores`.
-3. Definir la regla del dorsal y aplicarla en la base de datos (H-07).
-4. Implementar Equipos y Partidos sobre el modelo corregido.
-5. Corregir el contraste en modo oscuro y la tabla en móvil (H-22, H-26).
+1. Añadir `equipo_id` a `jugadores`.
+2. Definir la regla del dorsal y aplicarla en la base de datos (H-07).
+3. Implementar Equipos y Partidos sobre el modelo corregido.
+4. Corregir el contraste en modo oscuro y la tabla en móvil (H-22, H-26).
+5. Búsqueda por nombre.
 
 **4. Qué no debería modificarse**
 - La identidad visual (banda, dorsal con contorno, tipografías, tokens `--pl-*`).
 - El acceso a datos solo en el servidor y la validación de las Server Actions.
+- La comprobación de sesión y de rol al inicio de cada Server Action, aunque exista el proxy.
 - El seed idempotente y las migraciones versionadas.
 - La estructura `app/`, `components/`, `lib/`.
 - HeroUI y sonner.

@@ -169,3 +169,6 @@ next-env.d.ts
 # Datos de la migración y notas locales (no se versionan)
 /prisma/seed-data.json
 /prompt-1.md
+
+# Vitest
+.vitest/

@@ -85,4 +85,27 @@ describe("restricciones de la base de datos", () => {
       prisma.detalleJugador.create({ data: { jugadorId: jugador.id, alturaCm: 0 } }),
     ).rejects.toThrow();
   });
+
+  it.each([0, 100, -5])("el CHECK del dorsal rechaza %i (fuera de 1-99)", async (dorsal) => {
+    await expect(prisma.jugador.create({ data: { nombre: "Gavi", dorsal } })).rejects.toThrow();
+  });
+
+  it.each([1, 99])("el CHECK del dorsal acepta %i", async (dorsal) => {
+    await expect(prisma.jugador.create({ data: { nombre: "Gavi", dorsal } })).resolves.toBeTruthy();
+  });
+
+  it("el CHECK de la fecha de nacimiento rechaza fechas futuras o anteriores a 1900 (H-06)", async () => {
+    const crear = (fecha: string) =>
+      prisma.jugador.create({
+        data: { nombre: "Gavi", dorsal: 6, fechaNacimiento: new Date(`${fecha}T00:00:00Z`) },
+      });
+    const enDiezDias = new Date(Date.now() + 10 * 86_400_000).toISOString().slice(0, 10);
+
+    await expect(crear("1899-12-31")).rejects.toThrow();
+    await expect(crear(enDiezDias)).rejects.toThrow();
+    await expect(crear("1900-01-01")).resolves.toBeTruthy();
+    await expect(crear("2004-08-05")).resolves.toBeTruthy();
+    // La fecha sigue siendo opcional en la base de datos.
+    await expect(prisma.jugador.create({ data: { nombre: "Sin fecha", dorsal: 6 } })).resolves.toBeTruthy();
+  });
 });

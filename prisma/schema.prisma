@@ -105,3 +105,76 @@ model PosicionGrupo {
 
   @@map("posiciones_por_grupo")
 }
+
+// --- Autenticación (Better Auth) ---
+// Los nombres de modelo y de campo son los que espera Better Auth; las tablas y
+// columnas se mapean al español como el resto del esquema.
+// La restricción CHECK del rol ('admin' | 'demo') está en la migración.
+
+model User {
+  id            String   @id
+  name          String   @map("nombre")
+  email         String   @unique
+  emailVerified Boolean  @default(false) @map("email_verificado")
+  image         String?  @map("imagen")
+  // Mínimo privilegio por defecto: solo lectura.
+  role          String   @default("demo") @map("rol") @db.VarChar(20)
+  createdAt     DateTime @default(now()) @map("fecha_creacion") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("fecha_actualizacion") @db.Timestamptz(6)
+
+  sessions Session[]
+  accounts Account[]
+
+  @@map("usuarios")
+}
+
+model Session {
+  id        String   @id
+  token     String   @unique
+  expiresAt DateTime @map("fecha_expiracion") @db.Timestamptz(6)
+  ipAddress String?  @map("ip")
+  userAgent String?  @map("agente_usuario")
+  userId    String   @map("usuario_id")
+  createdAt DateTime @default(now()) @map("fecha_creacion") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("fecha_actualizacion") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sesiones")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String    @map("cuenta_id")
+  providerId            String    @map("proveedor_id")
+  userId                String    @map("usuario_id")
+  accessToken           String?   @map("token_acceso")
+  refreshToken          String?   @map("token_refresco")
+  idToken               String?   @map("token_id")
+  accessTokenExpiresAt  DateTime? @map("token_acceso_expira") @db.Timestamptz(6)
+  refreshTokenExpiresAt DateTime? @map("token_refresco_expira") @db.Timestamptz(6)
+  scope                 String?   @map("alcance")
+  // Hash de la contraseña (scrypt); nunca se guarda en claro.
+  password              String?   @map("contrasena")
+  createdAt             DateTime  @default(now()) @map("fecha_creacion") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("fecha_actualizacion") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, accountId])
+  @@index([userId])
+  @@map("cuentas")
+}
+
+model Verification {
+  id         String   @id
+  identifier String   @map("identificador")
+  value      String   @map("valor")
+  expiresAt  DateTime @map("fecha_expiracion") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("fecha_creacion") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("fecha_actualizacion") @db.Timestamptz(6)
+
+  @@index([identifier])
+  @@map("verificaciones")
+}
